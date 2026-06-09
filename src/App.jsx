@@ -1228,7 +1228,7 @@ function StorePage({ products = [], setProducts, user }) {  const [cart, setCart
         ))}
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(4,1fr)" : "1fr 1fr", gap: 12 }}>
+      <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(4,1fr)" : "repeat(2,1fr)", gap: 12 }}>
         {filtered.map((p, i) => (
           <div key={i} style={{ background: COLORS.cardBg, border: `1px solid ${COLORS.border}`, borderRadius: 15, padding: 14, textAlign: "center" }}>
             <div style={{ fontSize: isDesktop ? 52 : 44, marginBottom: 8, background: COLORS.surface, borderRadius: 12, padding: "12px" }}>{p.img}</div>
@@ -1741,11 +1741,11 @@ function AdminPage({ user, users, setUsers, products, setProducts, loadData }) {
       {/* نظرة عامة */}
       {adminTab === "overview" && (
         <div>
-          <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(4,1fr)" : "1fr 1fr", gap: 12, marginBottom: 22 }}>
-            <StatCard label="لاعب" value={String(players.length)} icon="⚽" color={COLORS.accent} sub={`${players.filter(p=>p.status!=="موقوف").length} نشط`} />
-            <StatCard label="مدرب" value={String(coaches.length)} icon="🏅" color={COLORS.accentGold} sub="في الأكاديمية" />
-            <StatCard label="ولي أمر" value={String(parents.length)} icon="👨‍👦" color={COLORS.accentBlue} sub="مسجل" />
-            <StatCard label="متوسط الحضور" value={`${avgAtt}٪`} icon="📊" color={COLORS.purple} sub="هذا الموسم" />
+          <div style={{ display: isDesktop ? "grid" : "flex", gridTemplateColumns: isDesktop ? "repeat(4,1fr)" : undefined, flexDirection: isDesktop ? undefined : "row", gap: 12, marginBottom: 22, overflowX: isDesktop ? "visible" : "auto", paddingBottom: 4 }}>
+            <StatCard label="لاعب" style={{ minWidth: isDesktop ? "unset" : 160 }} value={String(players.length)} icon="⚽" color={COLORS.accent} sub={`${players.filter(p=>p.status!=="موقوف").length} نشط`} />
+            <StatCard label="مدرب" style={{ minWidth: isDesktop ? "unset" : 160 }} value={String(coaches.length)} icon="🏅" color={COLORS.accentGold} sub="في الأكاديمية" />
+            <StatCard label="ولي أمر" style={{ minWidth: isDesktop ? "unset" : 160 }} value={String(parents.length)} icon="👨‍👦" color={COLORS.accentBlue} sub="مسجل" />
+            <StatCard label="متوسط الحضور" style={{ minWidth: isDesktop ? "unset" : 160 }} value={`${avgAtt}٪`} icon="📊" color={COLORS.purple} sub="هذا الموسم" />
           </div>
 
           <div style={{ display: "block", gap: 20 }}>

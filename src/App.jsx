@@ -430,7 +430,7 @@ function HomePage({ onNav, user, users, directorMsg, setDirectorMsg }) {
 
       {/* إحصائيات حقيقية */}
       <div style={{ padding: isDesktop ? "0" : "16px 16px 0" }}>
-        <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(4,1fr)" : "1fr 1fr", gap: 12, marginBottom: 22 }}>
+        <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(4,1fr)" : "repeat(2,1fr)", gap: 12, marginBottom: 22 }}>
           <StatCard label="لاعب مسجل" value={String(players.length)} icon="⚽" color={COLORS.accent} sub={`${players.filter(p => p.status !== "موقوف").length} نشط`} />
           <StatCard label="مدرب" value={String(coaches.length)} icon="🏅" color={COLORS.accentGold} sub="في الأكاديمية" />
           <StatCard label="متوسط الحضور" value={`${avgAtt}٪`} icon="📊" color={COLORS.accentBlue} sub="هذا الموسم" />
@@ -1748,7 +1748,7 @@ function AdminPage({ user, users, setUsers, products, setProducts, loadData }) {
             <StatCard label="متوسط الحضور" value={`${avgAtt}٪`} icon="📊" color={COLORS.purple} sub="هذا الموسم" />
           </div>
 
-          <div style={{ display: isDesktop ? "grid" : "block", gridTemplateColumns: "2fr 1fr", gap: 20 }}>
+          <div style={{ display: "block", gap: 20 }}>
             {/* رسم بياني */}
             <div style={{ background: COLORS.cardBg, border: `1px solid ${COLORS.border}`, borderRadius: 16, padding: 22, marginBottom: isDesktop ? 0 : 16 }}>
               <div style={{ fontSize: 15, fontWeight: 800, color: COLORS.textPrimary, marginBottom: 18 }}>📈 الإيرادات مقابل المصروفات</div>
@@ -2505,7 +2505,7 @@ export default function App() {
           )}
 
           {/* الصفحات */}
-          <div style={{ maxWidth: isDesktop ? 1200 : "100%", margin: "0 auto" }}>
+          <div style={{ maxWidth: isDesktop ? 1200 : "100%", margin: "0 auto", overflowX: "hidden" }}>
             {renderPage()}
           </div>
         </div>

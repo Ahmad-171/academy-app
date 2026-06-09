@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { supabase } from './supabase';
+/* eslint-disable no-unused-vars */
 
 const COLORS = {
   darkBg: "#0a0e1a", cardBg: "#0f1628", surface: "#151d35",

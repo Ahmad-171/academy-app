@@ -2416,7 +2416,7 @@ export default function App() {
   if (!liveUser) return <LoginPage onLogin={handleLogin} users={users} />;
 
   return (
-    <div style={{ minHeight: "100vh", background: COLORS.darkBg, fontFamily: "'Cairo',sans-serif", direction: "rtl", color: COLORS.textPrimary }}>
+    <div style={{ minHeight: "100vh", background: COLORS.darkBg, fontFamily: "'Cairo',sans-serif", direction: "rtl", color: COLORS.textPrimary, overflowX: "hidden" }}>
       <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
 
       <div style={{ display: "flex", minHeight: "100vh" }}>

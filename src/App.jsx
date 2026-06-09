@@ -2529,4 +2529,7 @@ export default function App() {
             <MoreMenu myTabs={myTabs} active={active} setActive={setActive} />
           )}
         </div>
-      )}
+        )}
+    </div>
+  );
+}

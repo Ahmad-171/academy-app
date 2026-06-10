@@ -1868,6 +1868,184 @@ function PlayersManager({ users, setUsers, user }) {
     </div>
   );
 }
+function FinanceManager({ user }) {
+  const [records, setRecords] = useState([
+    { id: 1, type: "revenue", label: "اشتراكات شهر يناير",  amount: 48000, date: "٢٠٢٦/١/١",  note: "٩٦ مشترك" },
+    { id: 2, type: "expense", label: "رواتب المدربين",       amount: 22000, date: "٢٠٢٦/١/٥",  note: "٢ مدرب" },
+    { id: 3, type: "revenue", label: "اشتراكات شهر فبراير", amount: 52000, date: "٢٠٢٦/٢/١",  note: "١٠٤ مشترك" },
+    { id: 4, type: "expense", label: "صيانة الملعب",         amount: 8000,  date: "٢٠٢٦/٢/١٠", note: "صيانة دورية" },
+    { id: 5, type: "expense", label: "معدات رياضية",         amount: 16000, date: "٢٠٢٦/٢/١٥", note: "كرات وأطواق" },
+    { id: 6, type: "revenue", label: "اشتراكات شهر مارس",   amount: 61000, date: "٢٠٢٦/٣/١",  note: "١٢٢ مشترك" },
+    { id: 7, type: "expense", label: "رواتب المدربين",       amount: 25000, date: "٢٠٢٦/٣/٥",  note: "٢ مدرب" },
+    { id: 8, type: "revenue", label: "اشتراكات شهر أبريل",  amount: 58000, date: "٢٠٢٦/٤/١",  note: "١١٦ مشترك" },
+    { id: 9, type: "expense", label: "إيجار الملعب",         amount: 23000, date: "٢٠٢٦/٤/١",  note: "إيجار شهري" },
+    { id: 10,type: "revenue", label: "اشتراكات شهر مايو",   amount: 67000, date: "٢٠٢٦/٥/١",  note: "١٣٤ مشترك" },
+    { id: 11,type: "expense", label: "رواتب المدربين",       amount: 26000, date: "٢٠٢٦/٥/٥",  note: "٢ مدرب" },
+    { id: 12,type: "revenue", label: "اشتراكات شهر يونيو",  amount: 72000, date: "٢٠٢٦/٦/١",  note: "١٤٤ مشترك" },
+    { id: 13,type: "expense", label: "رواتب المدربين",       amount: 28000, date: "٢٠٢٦/٦/٥",  note: "٢ مدرب" },
+  ]);
+
+  const [filter, setFilter]       = useState("all");
+  const [addModal, setAddModal]   = useState(false);
+  const [detailModal, setDetailModal] = useState(null);
+  const [newRecord, setNewRecord] = useState({ type: "revenue", label: "", amount: "", date: "", note: "" });
+  const { isDesktop } = useWindowSize();
+  const { toast, show } = useToast();
+
+  const canEdit = user.role === "مدير" || user.permissions?.editData;
+
+  const totalRevenue = records.filter(r => r.type === "revenue").reduce((s, r) => s + r.amount, 0);
+  const totalExpense = records.filter(r => r.type === "expense").reduce((s, r) => s + r.amount, 0);
+  const netProfit    = totalRevenue - totalExpense;
+
+  const filtered = filter === "all" ? records : records.filter(r => r.type === filter);
+
+  const addRecord = () => {
+    if (!newRecord.label.trim() || !newRecord.amount) { show("⚠️ أكمل الحقول المطلوبة", COLORS.warning); return; }
+    setRecords(prev => [...prev, { ...newRecord, id: Date.now(), amount: Number(newRecord.amount) }]);
+    setNewRecord({ type: "revenue", label: "", amount: "", date: "", note: "" });
+    setAddModal(false);
+    show("✅ تم إضافة السجل");
+  };
+
+  const deleteRecord = (id) => {
+    setRecords(prev => prev.filter(r => r.id !== id));
+    show("🗑️ تم الحذف", COLORS.danger);
+    setDetailModal(null);
+  };
+
+  const formatNum = (n) => n.toLocaleString("ar-SA");
+
+  return (
+    <div>
+      {toast && <ToastMsg msg={toast.msg} color={toast.color} />}
+
+      {/* بطاقات الملخص */}
+      <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(3,1fr)" : "1fr", gap: 12, marginBottom: 22 }}>
+        {[
+          { label: "إجمالي الإيرادات", value: formatNum(totalRevenue), icon: "💰", color: COLORS.accent,     type: "revenue" },
+          { label: "إجمالي المصروفات", value: formatNum(totalExpense), icon: "📉", color: COLORS.danger,     type: "expense" },
+          { label: "صافي الربح",        value: formatNum(netProfit),    icon: "📈", color: COLORS.accentGold, type: "all" },
+        ].map((card, i) => (
+          <div key={i} onClick={() => setFilter(filter === card.type ? "all" : card.type)}
+            style={{ background: filter === card.type ? `${card.color}18` : COLORS.cardBg, border: `2px solid ${filter === card.type ? card.color : COLORS.border}`, borderRadius: 16, padding: "20px", cursor: "pointer", transition: "all 0.2s" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+              <div style={{ width: 48, height: 48, borderRadius: 13, background: `${card.color}22`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 22 }}>{card.icon}</div>
+              <div>
+                <div style={{ fontSize: 22, fontWeight: 900, color: card.color }}>{card.value}</div>
+                <div style={{ fontSize: 12, color: COLORS.textSecondary, marginTop: 2 }}>{card.label}</div>
+              </div>
+            </div>
+            <div style={{ marginTop: 10, fontSize: 11, color: card.color }}>
+              {filter === card.type ? "✓ يعرض هذا النوع فقط — اضغط للإلغاء" : "اضغط لعرض التفاصيل"}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* شريط الأدوات */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+        <div style={{ display: "flex", gap: 8 }}>
+          {[
+            { label: "الكل",       value: "all",     color: COLORS.textSecondary },
+            { label: "💰 إيرادات", value: "revenue", color: COLORS.accent },
+            { label: "📉 مصروفات", value: "expense", color: COLORS.danger },
+          ].map(f => (
+            <button key={f.value} onClick={() => setFilter(f.value)}
+              style={{ padding: "7px 14px", borderRadius: 20, background: filter === f.value ? `${f.color}22` : COLORS.cardBg, border: `1px solid ${filter === f.value ? f.color : COLORS.border}`, color: filter === f.value ? f.color : COLORS.textSecondary, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
+              {f.label}
+            </button>
+          ))}
+        </div>
+        {canEdit && (
+          <button onClick={() => setAddModal(true)}
+            style={{ padding: "9px 18px", background: COLORS.accent, border: "none", color: "#000", borderRadius: 11, fontWeight: 800, fontSize: 13, cursor: "pointer" }}>
+            + إضافة
+          </button>
+        )}
+      </div>
+
+      {/* جدول السجلات */}
+      <div style={{ background: COLORS.cardBg, border: `1px solid ${COLORS.border}`, borderRadius: 16, overflow: "hidden" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr style={{ background: COLORS.surface }}>
+              {["النوع", "البيان", "المبلغ (ر.س)", "التاريخ", "ملاحظة", ""].map((h, i) => (
+                <th key={i} style={{ padding: "12px 14px", fontSize: 11, color: COLORS.textSecondary, fontWeight: 700, textAlign: "center", borderBottom: `1px solid ${COLORS.border}`, whiteSpace: "nowrap" }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {filtered.map(r => (
+              <tr key={r.id} style={{ borderBottom: `1px solid ${COLORS.border}`, background: r.type === "revenue" ? `${COLORS.accent}05` : `${COLORS.danger}05` }}>
+                <td style={{ padding: "12px 14px", textAlign: "center" }}>
+                  <Badge text={r.type === "revenue" ? "💰 إيراد" : "📉 مصروف"} color={r.type === "revenue" ? COLORS.accent : COLORS.danger} />
+                </td>
+                <td style={{ padding: "12px 14px", fontSize: 13, color: COLORS.textPrimary, fontWeight: 600 }}>{r.label}</td>
+                <td style={{ padding: "12px 14px", textAlign: "center", fontSize: 14, fontWeight: 800, color: r.type === "revenue" ? COLORS.accent : COLORS.danger }}>
+                  {r.type === "revenue" ? "+" : "-"}{formatNum(r.amount)}
+                </td>
+                <td style={{ padding: "12px 14px", textAlign: "center", fontSize: 12, color: COLORS.textSecondary }}>{r.date || "-"}</td>
+                <td style={{ padding: "12px 14px", textAlign: "center", fontSize: 11, color: COLORS.textSecondary }}>{r.note || "-"}</td>
+                <td style={{ padding: "10px 14px", textAlign: "center" }}>
+                  <button onClick={() => setDetailModal(r)}
+                    style={{ background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.textSecondary, borderRadius: 8, padding: "5px 12px", cursor: "pointer", fontSize: 12 }}>
+                    تفاصيل
+                  </button>
+                </td>
+              </tr>
+            ))}
+            {filtered.length === 0 && (
+              <tr><td colSpan={6} style={{ padding: "40px", textAlign: "center", color: COLORS.textSecondary }}>لا توجد سجلات</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Modal إضافة سجل */}
+      {addModal && (
+        <Modal title="➕ إضافة سجل مالي" onClose={() => setAddModal(false)}>
+          <Field label="النوع" value={newRecord.type} onChange={v => setNewRecord(p => ({ ...p, type: v }))}
+            options={[{ value: "revenue", label: "💰 إيراد" }, { value: "expense", label: "📉 مصروف" }]} />
+          <Field label="البيان *" value={newRecord.label} onChange={v => setNewRecord(p => ({ ...p, label: v }))} placeholder="مثال: اشتراكات شهر يوليو" />
+          <Field label="المبلغ (ر.س) *" value={newRecord.amount} onChange={v => setNewRecord(p => ({ ...p, amount: v }))} type="number" placeholder="0" />
+          <Field label="التاريخ" value={newRecord.date} onChange={v => setNewRecord(p => ({ ...p, date: v }))} placeholder="٢٠٢٦/٧/١" />
+          <Field label="ملاحظة" value={newRecord.note} onChange={v => setNewRecord(p => ({ ...p, note: v }))} placeholder="تفاصيل إضافية" />
+          <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
+            <button onClick={() => setAddModal(false)} style={{ flex: 1, padding: "12px", borderRadius: 11, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.textSecondary, fontWeight: 700, cursor: "pointer" }}>إلغاء</button>
+            <button onClick={addRecord} style={{ flex: 2, padding: "12px", borderRadius: 11, background: COLORS.accent, border: "none", color: "#000", fontWeight: 800, cursor: "pointer" }}>✅ إضافة</button>
+          </div>
+        </Modal>
+      )}
+
+      {/* Modal تفاصيل */}
+      {detailModal && (
+        <Modal title="📋 تفاصيل السجل" onClose={() => setDetailModal(null)}>
+          <div style={{ display: "flex", flexDirection: "column", gap: 12, marginBottom: 20 }}>
+            {[
+              { label: "النوع",    value: detailModal.type === "revenue" ? "💰 إيراد" : "📉 مصروف" },
+              { label: "البيان",   value: detailModal.label },
+              { label: "المبلغ",   value: `${formatNum(detailModal.amount)} ر.س` },
+              { label: "التاريخ",  value: detailModal.date || "-" },
+              { label: "ملاحظة",  value: detailModal.note || "-" },
+            ].map((item, i) => (
+              <div key={i} style={{ background: COLORS.surface, borderRadius: 10, padding: "12px 16px", display: "flex", justifyContent: "space-between" }}>
+                <span style={{ fontSize: 12, color: COLORS.textSecondary }}>{item.label}</span>
+                <span style={{ fontSize: 13, color: COLORS.textPrimary, fontWeight: 600 }}>{item.value}</span>
+              </div>
+            ))}
+          </div>
+          {canEdit && (
+            <button onClick={() => deleteRecord(detailModal.id)}
+              style={{ width: "100%", padding: "12px", background: COLORS.danger, border: "none", color: "#fff", borderRadius: 11, fontWeight: 800, cursor: "pointer" }}>
+              🗑️ حذف هذا السجل
+            </button>
+          )}
+        </Modal>
+      )}
+    </div>
+  );
+}
 // ── لوحة تحكم المدير ──
 function AdminPage({ user, users, setUsers, products, setProducts, loadData }) {
   const [adminTab, setAdminTab] = useState("overview");
@@ -2130,35 +2308,8 @@ function AdminPage({ user, users, setUsers, products, setProducts, loadData }) {
 
       {/* المالية */}
       {adminTab === "finance" && (
-        <div>
-          <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(3,1fr)" : "1fr 1fr", gap: 12, marginBottom: 22 }}>
-            <StatCard label="إيرادات الشهر" value="٧٢,٠٠٠" icon="💰" color={COLORS.accent} sub="ر.س" />
-            <StatCard label="المصروفات" value="٢٨,٠٠٠" icon="📉" color={COLORS.danger} sub="ر.س" />
-            <StatCard label="صافي الربح" value="٤٤,٠٠٠" icon="📈" color={COLORS.accentGold} sub="ر.س" />
-          </div>
-          <div style={{ fontSize: 15, fontWeight: 800, color: COLORS.textPrimary, marginBottom: 12 }}>كشف حساب المشتركين</div>
-          <div style={{ display: isDesktop ? "grid" : "block", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            {players.map((u, i) => {
-              const statuses = ["مدفوع","متأخر","مدفوع","معلق","مدفوع"];
-              const amounts  = [450, 450, 650, 250, 950];
-              const s = statuses[i % statuses.length];
-              return (
-                <div key={u.id} style={{ background: COLORS.cardBg, border: `1px solid ${COLORS.border}`, borderRadius: 13, padding: "13px 16px", marginBottom: isDesktop ? 0 : 8, display: "flex", alignItems: "center", gap: 12 }}>
-                  <Avatar letter={u.name[0]} size={36} color={COLORS.accent} />
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.textPrimary }}>{u.name}</div>
-                    <div style={{ fontSize: 11, color: COLORS.textSecondary }}>عضوية {u.membership}</div>
-                  </div>
-                  <div style={{ textAlign: "left" }}>
-                    <div style={{ fontSize: 14, fontWeight: 800, color: COLORS.textPrimary, marginBottom: 3 }}>{amounts[i % amounts.length]} ر.س</div>
-                    <Badge text={s} color={s === "مدفوع" ? COLORS.accent : s === "متأخر" ? COLORS.danger : COLORS.warning} />
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      )}
+  <FinanceManager user={user} />
+)}
 {/* الأسعار */}
 {adminTab === "pricing" && (
   <div>

@@ -1933,19 +1933,23 @@ function AdminPage({ user, users, setUsers, products, setProducts, loadData }) {
     setModal(null);
   };
 
-  const toggleSuspend = (u) => {
-    setUsers(prev => prev.map(a => a.id === u.id ? { ...a, status: a.status === "موقوف" ? "نشط" : "موقوف" } : a));
+  const toggleSuspend = async (u) => {
+    const newStatus = u.status === "موقوف" ? "نشط" : "موقوف";
+    await supabase.from('users').update({ status: newStatus }).eq('id', u.id);
+    setUsers(prev => prev.map(a => a.id === u.id ? { ...a, status: newStatus } : a));
     show(u.status === "موقوف" ? "✅ تم تفعيل الحساب" : "⛔ تم إيقاف الحساب", u.status === "موقوف" ? COLORS.accent : COLORS.danger);
     setModal(null);
   };
 
-  const deleteAccount = (id) => {
+  const deleteAccount = async (id) => {
+    await supabase.from('users').delete().eq('id', id);
     setUsers(prev => prev.filter(u => u.id !== id));
     show("🗑️ تم حذف الحساب", COLORS.danger);
     setModal(null);
   };
 
-  const savePermissions = () => {
+  const savePermissions = async () => {
+    await supabase.from('users').update({ permissions: permTarget.permissions }).eq('id', permTarget.id);
     setUsers(prev => prev.map(u => u.id === permTarget.id ? { ...u, permissions: permTarget.permissions } : u));
     show("✅ تم حفظ الصلاحيات");
     setPermTarget(null);

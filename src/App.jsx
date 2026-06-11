@@ -2877,35 +2877,7 @@ export default function App() {
     await loadData();
   };
 
-  // ── حفظ المنتجات ──
-  const addProduct = async () => {
-    if (!newProduct.name.trim()) { show("⚠️ أدخل اسم المنتج", COLORS.warning); return; }
-    const { data } = await supabase.from('products').insert({
-      name: newProduct.name,
-      price: Number(newProduct.price),
-      category: newProduct.category,
-      img: newProduct.img,
-      images: [],
-    }).select().single();
-    if (data) setProducts(prev => [...prev, { ...data, images: [] }]);
-    setNewProduct({ name: "", price: 0, category: "ملابس", img: "📦", images: [] });
-    setAddModal(false);
-    show("✅ تم إضافة المنتج");
-  };
-
-  const updateProduct = async (product) => {
-    await supabase.from('products').update({
-      name: product.name, price: product.price,
-      category: product.category, img: product.img, images: product.images || [],
-    }).eq('id', product.id);
-    await loadData();
-  };
-
-  const deleteProduct = async (id) => {
-    await supabase.from('products').delete().eq('id', id);
-    setProducts(prev => prev.filter(p => p.id !== id));
-    show("🗑️ تم حذف المنتج", COLORS.danger);
-  };
+  
 
   const liveUser = currentUser ? users.find(u => u.id === currentUser.id) || currentUser : null;
 

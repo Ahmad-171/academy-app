@@ -742,33 +742,7 @@ const addTeam = async () => {
     setTournaments(prev => ({ ...prev, teams: prev.teams.filter(t => t.id !== id) }));
     show("🗑️ تم حذف الفريق", COLORS.danger);
   };
-  const addScorer = async () => {
-    if (!newScorer.name) { show("⚠️ أدخل اسم اللاعب", COLORS.warning); return; }
-    const { data } = await supabase.from('tournament_scorers').insert({
-      name: newScorer.name,
-      goals: Number(newScorer.goals),
-      team: newScorer.team,
-    }).select().single();
-    if (data) setTournaments(prev => ({ ...prev, scorers: [...prev.scorers, data] }));
-    setNewScorer({ name: "", goals: 0, team: "" });
-    setAddScorerModal(false);
-    show("✅ تم إضافة الهداف");
-  };
-  const saveScorer = async () => {
-    await supabase.from('tournament_scorers').update({
-      name: editScorerModal.name,
-      goals: Number(editScorerModal.goals),
-      team: editScorerModal.team,
-    }).eq('id', editScorerModal.id);
-    setTournaments(prev => ({ ...prev, scorers: prev.scorers.map(s => s.id === editScorerModal.id ? editScorerModal : s) }));
-    setEditScorerModal(null);
-    show("✅ تم تحديث الهداف");
-  };
-  const deleteScorer = async (id) => {
-    await supabase.from('tournament_scorers').delete().eq('id', id);
-    setTournaments(prev => ({ ...prev, scorers: prev.scorers.filter(s => s.id !== id) }));
-    show("🗑️ تم حذف الهداف", COLORS.danger);
-  };
+  
 // ── صفحة البطولات ──
 function TournamentsPage({ user, tournaments, setTournaments }) {
   const [editTeamModal, setEditTeamModal] = useState(null);

@@ -713,35 +713,7 @@ function SchedulePage({ user, schedule, setSchedule, users, setUsers }) {
     </div>
   );
 }
-const addTeam = async () => {
-    if (!newTeam.name) { show("⚠️ أدخل اسم الفريق", COLORS.warning); return; }
-    const { data } = await supabase.from('tournament_teams').insert({
-      name: newTeam.name,
-      p: Number(newTeam.p), w: Number(newTeam.w),
-      d: Number(newTeam.d), l: Number(newTeam.l),
-      pts: Number(newTeam.pts),
-    }).select().single();
-    if (data) setTournaments(prev => ({ ...prev, teams: [...prev.teams, data] }));
-    setNewTeam({ name: "", p: 0, w: 0, d: 0, l: 0, pts: 0 });
-    setAddTeamModal(false);
-    show("✅ تم إضافة الفريق");
-  };
-  const saveTeam = async () => {
-    await supabase.from('tournament_teams').update({
-      name: editTeamModal.name,
-      p: Number(editTeamModal.p), w: Number(editTeamModal.w),
-      d: Number(editTeamModal.d), l: Number(editTeamModal.l),
-      pts: Number(editTeamModal.pts),
-    }).eq('id', editTeamModal.id);
-    setTournaments(prev => ({ ...prev, teams: prev.teams.map(t => t.id === editTeamModal.id ? editTeamModal : t) }));
-    setEditTeamModal(null);
-    show("✅ تم تحديث الفريق");
-  };
-  const deleteTeam = async (id) => {
-    await supabase.from('tournament_teams').delete().eq('id', id);
-    setTournaments(prev => ({ ...prev, teams: prev.teams.filter(t => t.id !== id) }));
-    show("🗑️ تم حذف الفريق", COLORS.danger);
-  };
+
   
 // ── صفحة البطولات ──
 function TournamentsPage({ user, tournaments, setTournaments }) {

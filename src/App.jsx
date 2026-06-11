@@ -473,35 +473,61 @@ function SchedulePage({ user, schedule, setSchedule, users, setUsers }) {
   const players = users.filter(u => u.role === "لاعب");
   const days = ["الأحد", "الاثنين", "الثلاثاء", "الأربعاء", "الخميس", "الجمعة", "السبت"];
 
-  const addItem = () => {
+  const addItem = async () => {
     if (!newItem.time || !newItem.team || !newItem.location) { show("⚠️ أكمل جميع الحقول", COLORS.warning); return; }
-    setSchedule(prev => [...prev, { ...newItem, id: Date.now(), order: prev.length + 1 }]);
+    const { data } = await supabase.from('schedule').insert({
+      day: newItem.day, time: newItem.time, type: newItem.type,
+      team: newItem.team, location: newItem.location, order: schedule.length + 1,
+    }).select().single();
+    if (data) setSchedule(prev => [...prev, data]);
     setNewItem({ day: "الأحد", time: "", type: "تدريب", team: "", location: "" });
     setAddModal(false);
     show("✅ تم إضافة الموعد");
   };
 
-  const deleteItem = (id) => {
+  const deleteItem = async (id) => {
+    await supabase.from('schedule').delete().eq('id', id);
     setSchedule(prev => prev.filter(s => s.id !== id));
     show("🗑️ تم حذف الموعد", COLORS.danger);
   };
 
-  const saveEdit = () => {
-    setSchedule(prev => prev.map(s => s.id === editModal.id ? editModal : s));
+  const saveEdit = async () => {
+    await supabase.from('products').update({
+      name: editModal.name,
+      price: Number(editModal.price),
+      category: editModal.category,
+      img: editModal.img,
+    }).eq('id', editModal.id);
+    setProducts(prev => prev.map(p => p.id === editModal.id ? { ...editModal, price: Number(editModal.price) } : p));
     setEditModal(null);
-    show("✅ تم تحديث الموعد");
+    show("✅ تم تحديث المنتج");
+  };
+  const addImage = async (productId, imageUrl) => {
+    const product = products.find(p => p.id === productId);
+    const newImages = [...(product.images || []), { id: Date.now(), url: imageUrl }];
+    await supabase.from('products').update({ images: newImages }).eq('id', productId);
+    setProducts(prev => prev.map(p => p.id === productId ? { ...p, images: newImages } : p));
+    show("✅ تم إضافة الصورة");
+  };
+  const removeImage = async (productId, imageId) => {
+    const product = products.find(p => p.id === productId);
+    const newImages = (product.images || []).filter(img => img.id !== imageId);
+    await supabase.from('products').update({ images: newImages }).eq('id', productId);
+    setProducts(prev => prev.map(p => p.id === productId ? { ...p, images: newImages } : p));
+    show("🗑️ تم حذف الصورة", COLORS.danger);
   };
 
-  const moveItem = (id, dir) => {
-    setSchedule(prev => {
-      const arr = [...prev].sort((a, b) => a.order - b.order);
-      const idx = arr.findIndex(s => s.id === id);
-      if (dir === "up" && idx === 0) return prev;
-      if (dir === "down" && idx === arr.length - 1) return prev;
-      const swap = dir === "up" ? idx - 1 : idx + 1;
-      [arr[idx].order, arr[swap].order] = [arr[swap].order, arr[idx].order];
-      return [...arr];
-    });
+  const moveItem = async (id, dir) => {
+    const arr = [...schedule].sort((a, b) => a.order - b.order);
+    const idx = arr.findIndex(s => s.id === id);
+    if (dir === "up" && idx === 0) return;
+    if (dir === "down" && idx === arr.length - 1) return;
+    const swap = dir === "up" ? idx - 1 : idx + 1;
+    const newArr = [...arr];
+    [newArr[idx].order, newArr[swap].order] = [newArr[swap].order, newArr[idx].order];
+    setSchedule(newArr);
+    await supabase.from('schedule').update({ order: newArr[idx].order }).eq('id', newArr[idx].id);
+    await supabase.from('schedule').update({ order: newArr[swap].order }).eq('id', newArr[swap].id);
   };
 
   const toggleAtt = (playerId, sessionIdx) => {
@@ -687,6 +713,62 @@ function SchedulePage({ user, schedule, setSchedule, users, setUsers }) {
     </div>
   );
 }
+const addTeam = async () => {
+    if (!newTeam.name) { show("⚠️ أدخل اسم الفريق", COLORS.warning); return; }
+    const { data } = await supabase.from('tournament_teams').insert({
+      name: newTeam.name,
+      p: Number(newTeam.p), w: Number(newTeam.w),
+      d: Number(newTeam.d), l: Number(newTeam.l),
+      pts: Number(newTeam.pts),
+    }).select().single();
+    if (data) setTournaments(prev => ({ ...prev, teams: [...prev.teams, data] }));
+    setNewTeam({ name: "", p: 0, w: 0, d: 0, l: 0, pts: 0 });
+    setAddTeamModal(false);
+    show("✅ تم إضافة الفريق");
+  };
+  const saveTeam = async () => {
+    await supabase.from('tournament_teams').update({
+      name: editTeamModal.name,
+      p: Number(editTeamModal.p), w: Number(editTeamModal.w),
+      d: Number(editTeamModal.d), l: Number(editTeamModal.l),
+      pts: Number(editTeamModal.pts),
+    }).eq('id', editTeamModal.id);
+    setTournaments(prev => ({ ...prev, teams: prev.teams.map(t => t.id === editTeamModal.id ? editTeamModal : t) }));
+    setEditTeamModal(null);
+    show("✅ تم تحديث الفريق");
+  };
+  const deleteTeam = async (id) => {
+    await supabase.from('tournament_teams').delete().eq('id', id);
+    setTournaments(prev => ({ ...prev, teams: prev.teams.filter(t => t.id !== id) }));
+    show("🗑️ تم حذف الفريق", COLORS.danger);
+  };
+  const addScorer = async () => {
+    if (!newScorer.name) { show("⚠️ أدخل اسم اللاعب", COLORS.warning); return; }
+    const { data } = await supabase.from('tournament_scorers').insert({
+      name: newScorer.name,
+      goals: Number(newScorer.goals),
+      team: newScorer.team,
+    }).select().single();
+    if (data) setTournaments(prev => ({ ...prev, scorers: [...prev.scorers, data] }));
+    setNewScorer({ name: "", goals: 0, team: "" });
+    setAddScorerModal(false);
+    show("✅ تم إضافة الهداف");
+  };
+  const saveScorer = async () => {
+    await supabase.from('tournament_scorers').update({
+      name: editScorerModal.name,
+      goals: Number(editScorerModal.goals),
+      team: editScorerModal.team,
+    }).eq('id', editScorerModal.id);
+    setTournaments(prev => ({ ...prev, scorers: prev.scorers.map(s => s.id === editScorerModal.id ? editScorerModal : s) }));
+    setEditScorerModal(null);
+    show("✅ تم تحديث الهداف");
+  };
+  const deleteScorer = async (id) => {
+    await supabase.from('tournament_scorers').delete().eq('id', id);
+    setTournaments(prev => ({ ...prev, scorers: prev.scorers.filter(s => s.id !== id) }));
+    show("🗑️ تم حذف الهداف", COLORS.danger);
+  };
 // ── صفحة البطولات ──
 function TournamentsPage({ user, tournaments, setTournaments }) {
   const [editTeamModal, setEditTeamModal] = useState(null);
@@ -1018,18 +1100,26 @@ function ProfilePage({ user, users, setUsers }) {
   const [editRatings, setEditRatings] = useState({ ...(profileUser.ratings || {}) });
   const [editMode, setEditMode] = useState(false);
 
-  const saveInfo = () => {
+  const saveInfo = async () => {
+    await supabase.from('users').update({
+      name: editInfo.name,
+      phone: editInfo.phone,
+      position: editInfo.position,
+      custom_role: editInfo.customRole,
+    }).eq('id', profileUser.id);
     setUsers(prev => prev.map(u => u.id === profileUser.id ? { ...u, ...editInfo } : u));
     setEditMode(false);
     show("✅ تم حفظ البيانات");
   };
 
-  const saveMedical = () => {
+  const saveMedical = async () => {
+    await supabase.from('users').update({ medical: editMedical }).eq('id', profileUser.id);
     setUsers(prev => prev.map(u => u.id === profileUser.id ? { ...u, medical: editMedical } : u));
     show("✅ تم حفظ السجل الطبي");
   };
 
-  const saveRatings = () => {
+  const saveRatings = async () => {
+    await supabase.from('users').update({ ratings: editRatings }).eq('id', profileUser.id);
     setUsers(prev => prev.map(u => u.id === profileUser.id ? { ...u, ratings: editRatings } : u));
     show("✅ تم حفظ التقييمات");
   };
@@ -1290,9 +1380,12 @@ function NotificationsPage({ user, notifications, setNotifications }) {
   const myNotifs = notifications.filter(n => n.roles.includes(user.role));
   const unread   = myNotifs.filter(n => !n.read).length;
 
-  const markAllRead = () => setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+  const markAllRead = async () => {
+    await supabase.from('notifications').update({ read: true }).eq('read', false);
+    setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+  };
 
-  const sendNotification = () => {
+  const sendNotification = async () => {
     if (!newNotif.msg.trim()) { show("⚠️ أدخل نص الإشعار", COLORS.warning); return; }
     const targetRoles = newNotif.target === "الكل"
       ? ["مدير", "مدرب", "لاعب", "ولي أمر"]
@@ -1302,15 +1395,16 @@ function NotificationsPage({ user, notifications, setNotifications }) {
       ? ["مدرب"]
       : ["ولي أمر"];
 
-    setNotifications(prev => [{
-      id: Date.now(),
+    const { data } = await supabase.from('notifications').insert({
       type: newNotif.type,
       msg: newNotif.msg,
       time: "الآن",
       read: false,
       roles: targetRoles,
       sender: user.name,
-    }, ...prev]);
+    }).select().single();
+
+    if (data) setNotifications(prev => [{ ...data, roles: data.roles || [] }, ...prev]);
     setNewNotif({ msg: "", type: "training", target: "الكل" });
     setSendModal(false);
     show("✅ تم إرسال الإشعار");
@@ -1389,21 +1483,24 @@ function LibraryPage({ user, library, setLibrary }) {
 
   const emojiMap = { تدريب: "🏃", مباراة: "🎬", هدف: "⚽", إنجاز: "🏆", image: "📸", video: "🎥", achievement: "🥇", goal: "⚽" };
 
-  const addItem = () => {
+  const addItem = async () => {
     if (!newItem.title.trim()) { show("⚠️ أدخل عنواناً", COLORS.warning); return; }
-    setLibrary(prev => [{
-      ...newItem,
-      id: Date.now(),
+    const { data } = await supabase.from('library').insert({
+      type: newItem.type,
+      category: newItem.category,
+      title: newItem.title,
       emoji: emojiMap[newItem.category] || "📸",
       date: new Date().toLocaleDateString("ar-SA"),
-      addedBy: user.name,
-    }, ...prev]);
+      added_by: user.name,
+    }).select().single();
+    if (data) setLibrary(prev => [{ ...data, addedBy: data.added_by }, ...prev]);
     setNewItem({ title: "", category: "تدريب", type: "image", emoji: "📸" });
     setAddModal(false);
     show("✅ تم الإضافة للمكتبة");
   };
 
-  const deleteItem = (id) => {
+  const deleteItem = async (id) => {
+    await supabase.from('library').delete().eq('id', id);
     setLibrary(prev => prev.filter(i => i.id !== id));
     show("🗑️ تم الحذف", COLORS.danger);
   };
@@ -2781,12 +2878,19 @@ export default function App() {
   };
 
   // ── حفظ المنتجات ──
-  const addProduct = async (product) => {
-    await supabase.from('products').insert({
-      name: product.name, price: product.price,
-      category: product.category, img: product.img, images: [],
-    });
-    await loadData();
+  const addProduct = async () => {
+    if (!newProduct.name.trim()) { show("⚠️ أدخل اسم المنتج", COLORS.warning); return; }
+    const { data } = await supabase.from('products').insert({
+      name: newProduct.name,
+      price: Number(newProduct.price),
+      category: newProduct.category,
+      img: newProduct.img,
+      images: [],
+    }).select().single();
+    if (data) setProducts(prev => [...prev, { ...data, images: [] }]);
+    setNewProduct({ name: "", price: 0, category: "ملابس", img: "📦", images: [] });
+    setAddModal(false);
+    show("✅ تم إضافة المنتج");
   };
 
   const updateProduct = async (product) => {
@@ -2799,7 +2903,8 @@ export default function App() {
 
   const deleteProduct = async (id) => {
     await supabase.from('products').delete().eq('id', id);
-    await loadData();
+    setProducts(prev => prev.filter(p => p.id !== id));
+    show("🗑️ تم حذف المنتج", COLORS.danger);
   };
 
   const liveUser = currentUser ? users.find(u => u.id === currentUser.id) || currentUser : null;

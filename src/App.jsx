@@ -491,31 +491,15 @@ function SchedulePage({ user, schedule, setSchedule, users, setUsers }) {
     show("🗑️ تم حذف الموعد", COLORS.danger);
   };
 
-  const saveEdit = async () => {
-    await supabase.from('products').update({
-      name: editModal.name,
-      price: Number(editModal.price),
-      category: editModal.category,
-      img: editModal.img,
+const saveEdit = async () => {
+    await supabase.from('schedule').update({
+      day: editModal.day, time: editModal.time, type: editModal.type,
+      team: editModal.team, location: editModal.location,
     }).eq('id', editModal.id);
-    setProducts(prev => prev.map(p => p.id === editModal.id ? { ...editModal, price: Number(editModal.price) } : p));
+    setSchedule(prev => prev.map(s => s.id === editModal.id ? editModal : s));
     setEditModal(null);
-    show("✅ تم تحديث المنتج");
-  };
-  const addImage = async (productId, imageUrl) => {
-    const product = products.find(p => p.id === productId);
-    const newImages = [...(product.images || []), { id: Date.now(), url: imageUrl }];
-    await supabase.from('products').update({ images: newImages }).eq('id', productId);
-    setProducts(prev => prev.map(p => p.id === productId ? { ...p, images: newImages } : p));
-    show("✅ تم إضافة الصورة");
-  };
-  const removeImage = async (productId, imageId) => {
-    const product = products.find(p => p.id === productId);
-    const newImages = (product.images || []).filter(img => img.id !== imageId);
-    await supabase.from('products').update({ images: newImages }).eq('id', productId);
-    setProducts(prev => prev.map(p => p.id === productId ? { ...p, images: newImages } : p));
-    show("🗑️ تم حذف الصورة", COLORS.danger);
-  };
+    show("✅ تم تحديث الموعد");
+  };  
 
   const moveItem = async (id, dir) => {
     const arr = [...schedule].sort((a, b) => a.order - b.order);

@@ -28,21 +28,23 @@ export default function App() {
   const [products, setProducts]           = useState([]);
   const [directorMsg, setDirectorMsg]     = useState("نؤمن بأن كل موهبة تستحق الرعاية والتطوير.");
   const [loading, setLoading]             = useState(true);
+  const [loadError, setLoadError]         = useState(null);
   const { isDesktop }                     = useWindowSize();
 
   // ── تحميل البيانات من Supabase ──
   const loadData = useCallback(async () => {
     setLoading(true);
+    setLoadError(null);
     try {
       const [
-        { data: usersData },
-        { data: scheduleData },
-        { data: notifsData },
-        { data: teamsData },
-        { data: scorersData },
-        { data: libraryData },
-        { data: productsData },
-        { data: settingsData },
+        usersRes,
+        scheduleRes,
+        notifsRes,
+        teamsRes,
+        scorersRes,
+        libraryRes,
+        productsRes,
+        settingsRes,
       ] = await Promise.all([
         supabase.from('users').select('*'),
         supabase.from('schedule').select('*').order('order'),
@@ -53,6 +55,24 @@ export default function App() {
         supabase.from('products').select('*'),
         supabase.from('settings').select('*'),
       ]);
+
+      // نلقط أي خطأ فعلي من Supabase (RLS، جدول غير موجود، مشروع نائم...) بدل
+      // ما نتجاهله بصمت ونخلّي المستخدم يشوف "بيانات خاطئة" بدون سبب حقيقي.
+      const firstError = [usersRes, scheduleRes, notifsRes, teamsRes, scorersRes, libraryRes, productsRes, settingsRes]
+        .map(r => r.error).find(Boolean);
+      if (firstError) {
+        console.error('Supabase load error:', firstError);
+        setLoadError(firstError.message || 'تعذّر الاتصال بقاعدة البيانات');
+      }
+
+      const { data: usersData } = usersRes;
+      const { data: scheduleData } = scheduleRes;
+      const { data: notifsData } = notifsRes;
+      const { data: teamsData } = teamsRes;
+      const { data: scorersData } = scorersRes;
+      const { data: libraryData } = libraryRes;
+      const { data: productsData } = productsRes;
+      const { data: settingsData } = settingsRes;
 
       if (usersData) setUsers(usersData.map(u => ({
         ...u,
@@ -72,6 +92,7 @@ export default function App() {
       }
     } catch (err) {
       console.error('Error loading data:', err);
+      setLoadError(err.message || 'تعذّر الاتصال بقاعدة البيانات');
     }
     setLoading(false);
   }, []);
@@ -116,7 +137,7 @@ export default function App() {
     </div>
   );
 
-  if (!liveUser) return <LoginPage onLogin={handleLogin} users={users} />;
+  if (!liveUser) return <LoginPage onLogin={handleLogin} users={users} loadError={loadError} />;
 
   return (
     <div style={{ minHeight: "100vh", background: COLORS.darkBg, fontFamily: "'Cairo',sans-serif", direction: "rtl", color: COLORS.textPrimary, overflowX: "hidden" }}>

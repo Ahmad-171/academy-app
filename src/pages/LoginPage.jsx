@@ -3,7 +3,7 @@ import { COLORS } from "../constants/colors";
 import { useWindowSize } from "../hooks/useWindowSize";
 import { Badge } from "../components/ui";
 
-export function LoginPage({ onLogin, users }) {
+export function LoginPage({ onLogin, users, loadError }) {
   const [idNum, setIdNum] = useState("");
   const [pass, setPass] = useState("");
   const [error, setError] = useState("");
@@ -14,6 +14,16 @@ export function LoginPage({ onLogin, users }) {
   const handleLogin = () => {
     setError(""); setLoading(true);
     setTimeout(() => {
+      if (loadError) {
+        setError(`تعذّر الاتصال بقاعدة البيانات: ${loadError}`);
+        setLoading(false);
+        return;
+      }
+      if (users.length === 0) {
+        setError("لا توجد حسابات محمّلة من قاعدة البيانات — تحقق من مشروع Supabase (قد يكون نائمًا أو الجدول فارغ)");
+        setLoading(false);
+        return;
+      }
       const user = users.find(u => u.id === idNum && u.password === pass);
       if (user) {
         if (user.status === "موقوف") setError("هذا الحساب موقوف، تواصل مع الإدارة");
@@ -70,6 +80,12 @@ export function LoginPage({ onLogin, users }) {
           <div style={{ background: COLORS.cardBg, border: `1px solid ${COLORS.border}`, borderRadius: 22, padding: 26, marginBottom: 14 }}>
             <div style={{ fontSize: 19, fontWeight: 800, color: COLORS.textPrimary, marginBottom: 3 }}>تسجيل الدخول</div>
             <div style={{ fontSize: 12, color: COLORS.textSecondary, marginBottom: 22 }}>أدخل رقم هويتك وكلمة السر</div>
+
+            {loadError && (
+              <div style={{ background: COLORS.warning + "15", border: `1px solid ${COLORS.warning}44`, borderRadius: 10, padding: "9px 13px", fontSize: 12, color: COLORS.warning, marginBottom: 16, lineHeight: 1.6 }}>
+                ⚠️ تعذّر تحميل بيانات الحسابات من قاعدة البيانات: {loadError}
+              </div>
+            )}
 
             <div style={{ marginBottom: 13 }}>
               <div style={{ fontSize: 12, color: COLORS.textSecondary, marginBottom: 5, fontWeight: 600 }}>رقم الهوية</div>

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { supabase } from "../lib/supabase";
 import { COLORS } from "../constants/colors";
 import { useWindowSize } from "../hooks/useWindowSize";
 import { useToast } from "../hooks/useToast";
@@ -16,24 +17,26 @@ export function PlayersManager({ users, setUsers, user }) {
 
   const players = users.filter(u => u.role === "لاعب");
 
-  const toggleAtt = (idx) => {
+  const toggleAtt = async (idx) => {
     if (!canEditAtt) return;
+    const log = [...(selected.attendanceLog || [])];
+    log[idx] = !log[idx];
+    const pct = log.length ? Math.round(log.filter(Boolean).length / log.length * 100) : 0;
+    await supabase.from('users').update({ attendance_log: log, attendance: pct }).eq('id', selected.id);
     setUsers(prev => prev.map(u => {
       if (u.id !== selected.id) return u;
-      const log = [...(u.attendanceLog || [])];
-      log[idx] = !log[idx];
-      const pct = log.length ? Math.round(log.filter(Boolean).length / log.length * 100) : 0;
       const updated = { ...u, attendanceLog: log, attendance: pct };
       setSelected(updated);
       return updated;
     }));
   };
 
-  const addWeek = () => {
+  const addWeek = async () => {
+    const log = [...(selected.attendanceLog || []), false, false, false, false, false, false, false];
+    const pct = log.length ? Math.round(log.filter(Boolean).length / log.length * 100) : 0;
+    await supabase.from('users').update({ attendance_log: log, attendance: pct }).eq('id', selected.id);
     setUsers(prev => prev.map(u => {
       if (u.id !== selected.id) return u;
-      const log = [...(u.attendanceLog || []), false, false, false, false, false, false, false];
-      const pct = log.length ? Math.round(log.filter(Boolean).length / log.length * 100) : 0;
       const updated = { ...u, attendanceLog: log, attendance: pct };
       setSelected(updated);
       return updated;
@@ -41,10 +44,12 @@ export function PlayersManager({ users, setUsers, user }) {
     show("✅ تم إضافة أسبوع جديد");
   };
 
-  const saveRatings = () => {
+  const saveRatings = async () => {
+    const ratings = { ...selected.ratings, ...editRatings };
+    await supabase.from('users').update({ ratings }).eq('id', selected.id);
     setUsers(prev => prev.map(u => {
       if (u.id !== selected.id) return u;
-      const updated = { ...u, ratings: { ...u.ratings, ...editRatings } };
+      const updated = { ...u, ratings };
       setSelected(updated);
       return updated;
     }));

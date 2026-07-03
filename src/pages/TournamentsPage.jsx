@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { supabase } from "../lib/supabase";
 import { COLORS } from "../constants/colors";
 import { useWindowSize } from "../hooks/useWindowSize";
 import { useToast } from "../hooks/useToast";
@@ -16,43 +17,55 @@ export function TournamentsPage({ user, tournaments, setTournaments, schedule = 
 
   const canEdit = user.role === "مدير" || user.permissions?.editTournaments;
 
-  const saveTeam = () => {
+  const saveTeam = async () => {
     if (editTeamModal.id) {
+      const { id, ...fields } = editTeamModal;
+      await supabase.from('tournament_teams').update(fields).eq('id', id);
       setTournaments(prev => ({ ...prev, teams: prev.teams.map(t => t.id === editTeamModal.id ? editTeamModal : t) }));
     }
     setEditTeamModal(null);
     show("✅ تم تحديث الفريق");
   };
 
-  const deleteTeam = (id) => {
+  const deleteTeam = async (id) => {
+    await supabase.from('tournament_teams').delete().eq('id', id);
     setTournaments(prev => ({ ...prev, teams: prev.teams.filter(t => t.id !== id) }));
     show("🗑️ تم حذف الفريق", COLORS.danger);
   };
 
-  const addTeam = () => {
+  const addTeam = async () => {
     if (!newTeam.name) { show("⚠️ أدخل اسم الفريق", COLORS.warning); return; }
-    setTournaments(prev => ({ ...prev, teams: [...prev.teams, { ...newTeam, id: Date.now(), p: Number(newTeam.p), w: Number(newTeam.w), d: Number(newTeam.d), l: Number(newTeam.l), pts: Number(newTeam.pts) }] }));
+    const { data } = await supabase.from('tournament_teams').insert({
+      name: newTeam.name, p: Number(newTeam.p), w: Number(newTeam.w), d: Number(newTeam.d), l: Number(newTeam.l), pts: Number(newTeam.pts),
+    }).select().single();
+    if (data) setTournaments(prev => ({ ...prev, teams: [...prev.teams, data] }));
     setNewTeam({ name: "", p: 0, w: 0, d: 0, l: 0, pts: 0 });
     setAddTeamModal(false);
     show("✅ تم إضافة الفريق");
   };
 
-  const saveScorer = () => {
+  const saveScorer = async () => {
     if (editScorerModal.id) {
-      setTournaments(prev => ({ ...prev, scorers: prev.scorers.map(s => s.id === editScorerModal.id ? { ...editScorerModal, goals: Number(editScorerModal.goals) } : s) }));
+      const goals = Number(editScorerModal.goals);
+      await supabase.from('tournament_scorers').update({ name: editScorerModal.name, team: editScorerModal.team, goals }).eq('id', editScorerModal.id);
+      setTournaments(prev => ({ ...prev, scorers: prev.scorers.map(s => s.id === editScorerModal.id ? { ...editScorerModal, goals } : s) }));
     }
     setEditScorerModal(null);
     show("✅ تم تحديث الهداف");
   };
 
-  const deleteScorer = (id) => {
+  const deleteScorer = async (id) => {
+    await supabase.from('tournament_scorers').delete().eq('id', id);
     setTournaments(prev => ({ ...prev, scorers: prev.scorers.filter(s => s.id !== id) }));
     show("🗑️ تم حذف الهداف", COLORS.danger);
   };
 
-  const addScorer = () => {
+  const addScorer = async () => {
     if (!newScorer.name) { show("⚠️ أدخل اسم اللاعب", COLORS.warning); return; }
-    setTournaments(prev => ({ ...prev, scorers: [...prev.scorers, { ...newScorer, id: Date.now(), goals: Number(newScorer.goals) }] }));
+    const { data } = await supabase.from('tournament_scorers').insert({
+      name: newScorer.name, team: newScorer.team, goals: Number(newScorer.goals),
+    }).select().single();
+    if (data) setTournaments(prev => ({ ...prev, scorers: [...prev.scorers, data] }));
     setNewScorer({ name: "", goals: 0, team: "" });
     setAddScorerModal(false);
     show("✅ تم إضافة الهداف");

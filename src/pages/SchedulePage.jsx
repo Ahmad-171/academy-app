@@ -68,14 +68,14 @@ const saveEdit = async () => {
     await supabase.from('schedule').update({ order: newArr[swap].order }).eq('id', newArr[swap].id);
   };
 
-  const toggleAtt = (playerId, sessionIdx) => {
-    setUsers(prev => prev.map(u => {
-      if (u.id !== playerId) return u;
-      const log = [...(u.attendanceLog || [])];
-      log[sessionIdx] = !log[sessionIdx];
-      const attPct = log.length ? Math.round((log.filter(Boolean).length / log.length) * 100) : 0;
-      return { ...u, attendanceLog: log, attendance: attPct };
-    }));
+  const toggleAtt = async (playerId, sessionIdx) => {
+    const player = users.find(u => u.id === playerId);
+    if (!player) return;
+    const log = [...(player.attendanceLog || [])];
+    log[sessionIdx] = !log[sessionIdx];
+    const attPct = log.length ? Math.round((log.filter(Boolean).length / log.length) * 100) : 0;
+    await supabase.from('users').update({ attendance_log: log, attendance: attPct }).eq('id', playerId);
+    setUsers(prev => prev.map(u => u.id === playerId ? { ...u, attendanceLog: log, attendance: attPct } : u));
   };
 
   const sortedSchedule = [...schedule].sort((a, b) => a.order - b.order);

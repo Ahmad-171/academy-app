@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import { supabase } from "./lib/supabase";
 import { getSession, signOut } from "./lib/auth";
 import { COLORS } from "./constants/colors";
-import { ROLE_TABS, ALL_TABS } from "./constants/data";
+import { ROLE_TABS, ALL_TABS, memberships as DEFAULT_MEMBERSHIPS } from "./constants/data";
 import { useWindowSize } from "./hooks/useWindowSize";
 import { Avatar } from "./components/ui";
 import { MoreMenu } from "./components/MoreMenu";
@@ -33,6 +33,7 @@ export default function App() {
   const [library, setLibrary]             = useState([]);
   const [products, setProducts]           = useState([]);
   const [directorMsg, setDirectorMsg]     = useState("نؤمن بأن كل موهبة تستحق الرعاية والتطوير.");
+  const [membershipPlans, setMembershipPlans] = useState(DEFAULT_MEMBERSHIPS);
   const [loading, setLoading]             = useState(true);
   const { isDesktop }                     = useWindowSize();
 
@@ -83,6 +84,10 @@ export default function App() {
       if (settingsData) {
         const msg = settingsData.find(s => s.key === 'director_message');
         if (msg) setDirectorMsg(msg.value);
+        const plans = settingsData.find(s => s.key === 'memberships');
+        if (plans) {
+          try { setMembershipPlans(JSON.parse(plans.value)); } catch { /* يبقى الافتراضي */ }
+        }
       }
     } catch (err) {
       console.error('Error loading data:', err);
@@ -109,6 +114,12 @@ export default function App() {
     await supabase.from('settings').upsert({ key: 'director_message', value: msg });
   };
 
+  // ── حفظ باقات العضوية ──
+  const saveMembershipPlans = async (plans) => {
+    setMembershipPlans(plans);
+    await supabase.from('settings').upsert({ key: 'memberships', value: JSON.stringify(plans) });
+  };
+
   const liveUser = currentUser ? users.find(u => u.id === currentUser.id) || currentUser : null;
 
   const handleLogin  = (user) => { setCurrentUser(user); setActive("home"); };
@@ -120,17 +131,17 @@ export default function App() {
 
   const renderPage = () => {
     switch (active) {
-      case "home":          return <HomePage onNav={setActive} user={liveUser} users={users} directorMsg={directorMsg} setDirectorMsg={saveDirectorMsg} />;
+      case "home":          return <HomePage onNav={setActive} user={liveUser} users={users} directorMsg={directorMsg} setDirectorMsg={saveDirectorMsg} membershipPlans={membershipPlans} />;
       case "schedule":      return <SchedulePage user={liveUser} schedule={schedule} setSchedule={setSchedule} users={users} setUsers={setUsers} />;
-      case "tournaments":   return <TournamentsPage user={liveUser} tournaments={tournaments} setTournaments={setTournaments} />;
-      case "rewards":       return <RewardsPage user={liveUser} users={users} />;
+      case "tournaments":   return <TournamentsPage user={liveUser} tournaments={tournaments} setTournaments={setTournaments} schedule={schedule} />;
+      case "rewards":       return <RewardsPage user={liveUser} users={users} setUsers={setUsers} />;
       case "store":         return <StorePage products={products} setProducts={setProducts} user={liveUser} />;
       case "profile":       return <ProfilePage user={liveUser} users={users} setUsers={setUsers} />;
       case "notifications": return <NotificationsPage user={liveUser} notifications={notifications} setNotifications={setNotifications} />;
-      case "subscriptions": return <SubscriptionsPage />;
+      case "subscriptions": return <SubscriptionsPage user={liveUser} setUsers={setUsers} membershipPlans={membershipPlans} />;
       case "library":       return <LibraryPage user={liveUser} library={library} setLibrary={setLibrary} />;
-      case "admin":         return liveUser.role === "مدير" ? <AdminPage user={liveUser} users={users} setUsers={setUsers} products={products} setProducts={setProducts} loadData={loadData} /> : <HomePage onNav={setActive} user={liveUser} users={users} directorMsg={directorMsg} setDirectorMsg={saveDirectorMsg} />;
-      default:              return <HomePage onNav={setActive} user={liveUser} users={users} directorMsg={directorMsg} setDirectorMsg={saveDirectorMsg} />;
+      case "admin":         return liveUser.role === "مدير" ? <AdminPage user={liveUser} users={users} setUsers={setUsers} products={products} setProducts={setProducts} loadData={loadData} membershipPlans={membershipPlans} saveMembershipPlans={saveMembershipPlans} /> : <HomePage onNav={setActive} user={liveUser} users={users} directorMsg={directorMsg} setDirectorMsg={saveDirectorMsg} membershipPlans={membershipPlans} />;
+      default:              return <HomePage onNav={setActive} user={liveUser} users={users} directorMsg={directorMsg} setDirectorMsg={saveDirectorMsg} membershipPlans={membershipPlans} />;
     }
   };
   if (loading) return (

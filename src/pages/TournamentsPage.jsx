@@ -4,7 +4,7 @@ import { useWindowSize } from "../hooks/useWindowSize";
 import { useToast } from "../hooks/useToast";
 import { Modal, Field, ToastMsg } from "../components/ui";
 
-export function TournamentsPage({ user, tournaments, setTournaments }) {
+export function TournamentsPage({ user, tournaments, setTournaments, schedule = [] }) {
   const [editTeamModal, setEditTeamModal] = useState(null);
   const [editScorerModal, setEditScorerModal] = useState(null);
   const [addTeamModal, setAddTeamModal] = useState(false);
@@ -61,29 +61,40 @@ export function TournamentsPage({ user, tournaments, setTournaments }) {
   const sortedTeams   = [...tournaments.teams].sort((a, b) => b.pts - a.pts);
   const sortedScorers = [...tournaments.scorers].sort((a, b) => b.goals - a.goals);
 
+  const nextMatch = [...schedule].sort((a, b) => a.order - b.order).find(s => s.type === "مباراة");
+  const [homeTeam, awayTeam] = nextMatch ? nextMatch.team.split(/\s+vs\s+/i) : [];
+
   return (
     <div style={{ padding: isDesktop ? "32px" : "16px" }}>
       {toast && <ToastMsg msg={toast.msg} color={toast.color} />}
       <div style={{ fontSize: isDesktop ? 22 : 18, fontWeight: 800, color: COLORS.textPrimary, marginBottom: 20 }}>🏆 البطولات</div>
 
       {/* المباراة القادمة */}
-      <div style={{ background: "linear-gradient(135deg,#1a0d00,#3d2200)", border: `1px solid ${COLORS.warning}44`, borderRadius: 18, padding: "20px", marginBottom: 22 }}>
-        <div style={{ fontSize: 11, color: COLORS.warning, fontWeight: 700, marginBottom: 14 }}>⚡ المباراة القادمة</div>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", maxWidth: 420, margin: "0 auto" }}>
-          <div style={{ textAlign: "center" }}>
-            <div style={{ fontSize: isDesktop ? 44 : 32 }}>⚽</div>
-            <div style={{ fontSize: 14, fontWeight: 800, color: COLORS.textPrimary, marginTop: 6 }}>النادي 1</div>
-          </div>
-          <div style={{ textAlign: "center" }}>
-            <div style={{ fontSize: isDesktop ? 26 : 20, fontWeight: 900, color: COLORS.warning }}>VS</div>
-            <div style={{ fontSize: 11, color: COLORS.textSecondary, marginTop: 4 }}>الجمعة ١٠:٠٠ ص</div>
-          </div>
-          <div style={{ textAlign: "center" }}>
-            <div style={{ fontSize: isDesktop ? 44 : 32 }}>🏟️</div>
-            <div style={{ fontSize: 14, fontWeight: 800, color: COLORS.textPrimary, marginTop: 6 }}>النادي 2</div>
+      {nextMatch ? (
+        <div style={{ background: "linear-gradient(135deg,#1a0d00,#3d2200)", border: `1px solid ${COLORS.warning}44`, borderRadius: 18, padding: "20px", marginBottom: 22 }}>
+          <div style={{ fontSize: 11, color: COLORS.warning, fontWeight: 700, marginBottom: 14 }}>⚡ المباراة القادمة</div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", maxWidth: 420, margin: "0 auto" }}>
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: isDesktop ? 44 : 32 }}>⚽</div>
+              <div style={{ fontSize: 14, fontWeight: 800, color: COLORS.textPrimary, marginTop: 6 }}>{homeTeam?.trim() || nextMatch.team}</div>
+            </div>
+            <div style={{ textAlign: "center" }}>
+              <div style={{ fontSize: isDesktop ? 26 : 20, fontWeight: 900, color: COLORS.warning }}>VS</div>
+              <div style={{ fontSize: 11, color: COLORS.textSecondary, marginTop: 4 }}>{nextMatch.day} {nextMatch.time}</div>
+            </div>
+            {awayTeam && (
+              <div style={{ textAlign: "center" }}>
+                <div style={{ fontSize: isDesktop ? 44 : 32 }}>🏟️</div>
+                <div style={{ fontSize: 14, fontWeight: 800, color: COLORS.textPrimary, marginTop: 6 }}>{awayTeam.trim()}</div>
+              </div>
+            )}
           </div>
         </div>
-      </div>
+      ) : (
+        <div style={{ background: COLORS.cardBg, border: `1px solid ${COLORS.border}`, borderRadius: 18, padding: "20px", marginBottom: 22, textAlign: "center", color: COLORS.textSecondary, fontSize: 13 }}>
+          لا توجد مباراة قادمة بالجدول حاليًا
+        </div>
+      )}
 
       <div style={{ display: isDesktop ? "grid" : "block", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
         {/* ترتيب الفرق */}

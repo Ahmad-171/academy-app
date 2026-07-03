@@ -1,15 +1,19 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 import { signUpAccount } from "../lib/auth";
 import { COLORS } from "../constants/colors";
-import { memberships, financialData, PERMISSION_LABELS } from "../constants/data";
+import { PERMISSION_LABELS } from "../constants/data";
 import { useWindowSize } from "../hooks/useWindowSize";
 import { useToast } from "../hooks/useToast";
 import { StatCard, Avatar, Badge, MiniBar, Modal, Field, ToastMsg } from "../components/ui";
 import { PlayersManager } from "./PlayersManager";
 import { FinanceManager } from "./FinanceManager";
 
-export function AdminPage({ user, users, setUsers, products, setProducts, loadData }) {
+const MONTH_NAMES = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
+const AR_DIGITS = { "٠":"0","١":"1","٢":"2","٣":"3","٤":"4","٥":"5","٦":"6","٧":"7","٨":"8","٩":"9" };
+function normalizeDigits(s) { return String(s || "").replace(/[٠-٩]/g, d => AR_DIGITS[d]); }
+
+export function AdminPage({ user, users, setUsers, products, setProducts, loadData, membershipPlans, saveMembershipPlans }) {
   const [adminTab, setAdminTab] = useState("overview");
   const [modal, setModal] = useState(null);
   const [form, setForm] = useState({});
@@ -18,8 +22,44 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
   const [search, setSearch] = useState("");
   const [filterRole, setFilterRole] = useState("الكل");
   const [permTarget, setPermTarget] = useState(null);
+  const [monthlyFinance, setMonthlyFinance] = useState([]);
+  const planEdits = useRef({});
+  const productEdits = useRef({});
   const { isDesktop } = useWindowSize();
   const { toast, show } = useToast();
+
+  useEffect(() => {
+    if (adminTab !== "overview") return;
+    supabase.from('finance').select('type,amount,date').then(({ data }) => {
+      if (!data) return;
+      const byMonth = {};
+      data.forEach(r => {
+        const parts = normalizeDigits(r.date).split(/[/-]/);
+        const monthIdx = parts.length >= 2 ? Number(parts[1]) - 1 : NaN;
+        if (Number.isNaN(monthIdx) || monthIdx < 0 || monthIdx > 11) return;
+        const key = MONTH_NAMES[monthIdx];
+        byMonth[key] = byMonth[key] || { month: key, revenue: 0, expenses: 0 };
+        if (r.type === "revenue") byMonth[key].revenue += Number(r.amount);
+        else byMonth[key].expenses += Number(r.amount);
+      });
+      setMonthlyFinance(MONTH_NAMES.map(m => byMonth[m]).filter(Boolean));
+    });
+  }, [adminTab]);
+
+  const savePlan = (i) => {
+    const edits = planEdits.current[i] || {};
+    const updated = membershipPlans.map((m, idx) => idx === i ? { ...m, ...edits } : m);
+    saveMembershipPlans(updated);
+    show(`✅ تم تحديث باقة ${membershipPlans[i].name}`);
+  };
+
+  const saveProductPrice = async (p) => {
+    const price = productEdits.current[p.id] ?? p.price;
+    const { error } = await supabase.from('products').update({ price: Number(price) }).eq('id', p.id);
+    if (error) { show(`⚠️ خطأ: ${error.message}`, COLORS.danger); return; }
+    setProducts(prev => prev.map(x => x.id === p.id ? { ...x, price: Number(price) } : x));
+    show(`✅ تم تحديث سعر ${p.name}`);
+  };
 
   const EMPTY_FORM = {
     name: "", id: "", password: "", role: "لاعب", customRole: "لاعب",
@@ -151,21 +191,30 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
             {/* رسم بياني */}
             <div style={{ background: COLORS.cardBg, border: `1px solid ${COLORS.border}`, borderRadius: 16, padding: 22, marginBottom: isDesktop ? 0 : 16 }}>
               <div style={{ fontSize: 15, fontWeight: 800, color: COLORS.textPrimary, marginBottom: 18 }}>📈 الإيرادات مقابل المصروفات</div>
-              <div style={{ display: "flex", gap: 5, alignItems: "flex-end", height: 150 }}>
-                {financialData.map((d, i) => (
-                  <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-                    <div style={{ display: "flex", gap: 2, alignItems: "flex-end", height: 120 }}>
-                      <div style={{ width: "45%", background: COLORS.accent, height: `${(d.revenue/80000)*100}%`, borderRadius: "4px 4px 0 0", minHeight: 4 }} />
-                      <div style={{ width: "45%", background: COLORS.danger+"88", height: `${(d.expenses/80000)*100}%`, borderRadius: "4px 4px 0 0", minHeight: 4 }} />
-                    </div>
-                    <div style={{ fontSize: 9, color: COLORS.textSecondary }}>{d.month.slice(0,3)}</div>
+              {monthlyFinance.length === 0 ? (
+                <div style={{ textAlign: "center", padding: "30px 0", color: COLORS.textSecondary, fontSize: 13 }}>لا توجد سجلات مالية بعد</div>
+              ) : (
+                <>
+                  <div style={{ display: "flex", gap: 5, alignItems: "flex-end", height: 150 }}>
+                    {monthlyFinance.map((d, i) => {
+                      const maxVal = Math.max(1, ...monthlyFinance.flatMap(x => [x.revenue, x.expenses]));
+                      return (
+                        <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                          <div style={{ display: "flex", gap: 2, alignItems: "flex-end", height: 120 }}>
+                            <div style={{ width: "45%", background: COLORS.accent, height: `${(d.revenue/maxVal)*100}%`, borderRadius: "4px 4px 0 0", minHeight: 4 }} />
+                            <div style={{ width: "45%", background: COLORS.danger+"88", height: `${(d.expenses/maxVal)*100}%`, borderRadius: "4px 4px 0 0", minHeight: 4 }} />
+                          </div>
+                          <div style={{ fontSize: 9, color: COLORS.textSecondary }}>{d.month.slice(0,3)}</div>
+                        </div>
+                      );
+                    })}
                   </div>
-                ))}
-              </div>
-              <div style={{ display: "flex", gap: 18, marginTop: 10 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 5 }}><div style={{ width: 10, height: 10, background: COLORS.accent, borderRadius: 2 }} /><span style={{ fontSize: 11, color: COLORS.textSecondary }}>إيرادات</span></div>
-                <div style={{ display: "flex", alignItems: "center", gap: 5 }}><div style={{ width: 10, height: 10, background: COLORS.danger+"88", borderRadius: 2 }} /><span style={{ fontSize: 11, color: COLORS.textSecondary }}>مصروفات</span></div>
-              </div>
+                  <div style={{ display: "flex", gap: 18, marginTop: 10 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 5 }}><div style={{ width: 10, height: 10, background: COLORS.accent, borderRadius: 2 }} /><span style={{ fontSize: 11, color: COLORS.textSecondary }}>إيرادات</span></div>
+                    <div style={{ display: "flex", alignItems: "center", gap: 5 }}><div style={{ width: 10, height: 10, background: COLORS.danger+"88", borderRadius: 2 }} /><span style={{ fontSize: 11, color: COLORS.textSecondary }}>مصروفات</span></div>
+                  </div>
+                </>
+              )}
             </div>
 
             {/* توزيع */}
@@ -280,7 +329,7 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
       💳 أسعار باقات الاشتراك
     </div>
     <div style={{ display: isDesktop ? "grid" : "block", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 28 }}>
-      {memberships.map((m, i) => (
+      {membershipPlans.map((m, i) => (
         <div key={i} style={{ background: COLORS.cardBg, border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: "16px", marginBottom: isDesktop ? 0 : 10 }}>
           <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
             <span style={{ fontSize: 24 }}>{m.icon}</span>
@@ -291,7 +340,7 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
             <input
               type="number"
               defaultValue={m.price}
-              onChange={e => { m.price = e.target.value; }}
+              onChange={e => { planEdits.current[i] = { ...planEdits.current[i], price: e.target.value }; }}
               style={{ width: "100%", background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: m.color, borderRadius: 10, padding: "10px 12px", fontSize: 18, fontWeight: 900, boxSizing: "border-box" }}
             />
           </div>
@@ -299,13 +348,13 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
             <div style={{ fontSize: 11, color: COLORS.textSecondary, marginBottom: 5 }}>المزايا (سطر لكل ميزة)</div>
             <textarea
               defaultValue={m.features.join("\n")}
-              onChange={e => { m.features = e.target.value.split("\n").filter(f => f.trim()); }}
+              onChange={e => { planEdits.current[i] = { ...planEdits.current[i], features: e.target.value.split("\n").filter(f => f.trim()) }; }}
               rows={4}
               style={{ width: "100%", background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.textPrimary, borderRadius: 10, padding: "10px 12px", fontSize: 12, resize: "vertical", boxSizing: "border-box" }}
             />
           </div>
           <button
-            onClick={() => show(`✅ تم تحديث باقة ${m.name}`)}
+            onClick={() => savePlan(i)}
             style={{ width: "100%", padding: "10px", background: m.color, border: "none", color: "#000", borderRadius: 10, fontWeight: 800, fontSize: 13, cursor: "pointer" }}>
             💾 حفظ التغييرات
           </button>
@@ -342,13 +391,13 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
                 <input
                   type="number"
                   defaultValue={p.price}
-                  onChange={e => { p.price = Number(e.target.value); }}
+                  onChange={e => { productEdits.current[p.id] = e.target.value; }}
                   style={{ width: 90, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.accentGold, borderRadius: 8, padding: "6px 10px", fontSize: 14, fontWeight: 800, textAlign: "center" }}
                 />
               </td>
               <td style={{ padding: "10px 14px", textAlign: "center" }}>
                 <button
-                  onClick={() => show(`✅ تم تحديث سعر ${p.name}`)}
+                  onClick={() => saveProductPrice(p)}
                   style={{ padding: "7px 14px", background: COLORS.accent, border: "none", color: "#000", borderRadius: 8, fontWeight: 800, fontSize: 12, cursor: "pointer" }}>
                   💾
                 </button>

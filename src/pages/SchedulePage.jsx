@@ -1,4 +1,5 @@
 import { useState } from "react";
+import QRCode from "qrcode";
 import { supabase } from "../lib/supabase";
 import { COLORS } from "../constants/colors";
 import { useWindowSize } from "../hooks/useWindowSize";
@@ -9,7 +10,13 @@ export function SchedulePage({ user, schedule, setSchedule, users, setUsers }) {
   const [addModal, setAddModal] = useState(false);
   const [editModal, setEditModal] = useState(null);
   const [, setEditAttModal] = useState(null);
-  const [qrVisible, setQrVisible] = useState(false);
+  const [qrDataUrl, setQrDataUrl] = useState(null);
+
+  const showQr = async () => {
+    const payload = `ACADEMY-CHECKIN|${user.id}|${Date.now()}`;
+    const url = await QRCode.toDataURL(payload, { width: 220, margin: 1 });
+    setQrDataUrl(url);
+  };
   const [newItem, setNewItem] = useState({ day: "الأحد", time: "", type: "تدريب", team: "", location: "" });
   const { isDesktop } = useWindowSize();
   const { toast, show } = useToast();
@@ -99,12 +106,10 @@ const saveEdit = async () => {
           {user.role === "لاعب" && (
             <div style={{ background: `${COLORS.accent}12`, border: `1px solid ${COLORS.accent}44`, borderRadius: 16, padding: 16, marginBottom: 16, textAlign: "center" }}>
               <div style={{ fontSize: 14, fontWeight: 800, color: COLORS.textPrimary, marginBottom: 10 }}>📲 باركود الحضور</div>
-              {qrVisible ? (
-                <div style={{ width: 110, height: 110, margin: "0 auto", background: "#fff", borderRadius: 10, padding: 6, display: "grid", gridTemplateColumns: "repeat(7,1fr)", gap: 2 }}>
-                  {Array(49).fill(0).map((_, i) => <div key={i} style={{ background: [0,1,2,6,7,13,14,15,16,20,21,27,28,29,34,35,41,42,43,44,48].includes(i) ? "#000" : "#fff", borderRadius: 1 }} />)}
-                </div>
+              {qrDataUrl ? (
+                <img src={qrDataUrl} alt="QR الحضور" style={{ width: 140, height: 140, margin: "0 auto", display: "block", borderRadius: 10 }} />
               ) : (
-                <button onClick={() => setQrVisible(true)} style={{ background: COLORS.accent, border: "none", color: "#000", padding: "9px 24px", borderRadius: 10, fontWeight: 800, cursor: "pointer" }}>عرض الباركود</button>
+                <button onClick={showQr} style={{ background: COLORS.accent, border: "none", color: "#000", padding: "9px 24px", borderRadius: 10, fontWeight: 800, cursor: "pointer" }}>عرض الباركود</button>
               )}
             </div>
           )}

@@ -1,11 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { supabase } from "../lib/supabase";
 import { COLORS } from "../constants/colors";
 import { useWindowSize } from "../hooks/useWindowSize";
-import { Avatar } from "../components/ui";
+import { useToast } from "../hooks/useToast";
+import { Avatar, ToastMsg } from "../components/ui";
 
-export function RewardsPage({ user, users }) {
-  const [redeemed, setRedeemed] = useState([]);
+export function RewardsPage({ user, users, setUsers }) {
+  const [redeemedCount, setRedeemedCount] = useState(0);
+  const [busyIdx, setBusyIdx] = useState(null);
   const { isDesktop } = useWindowSize();
+  const { toast, show } = useToast();
 
   const rewards = [
     { name: "خصم ١٠٪ على الاشتراك", points: 500, icon: "🎫" },
@@ -14,11 +18,32 @@ export function RewardsPage({ user, users }) {
     { name: "إعفاء شهر كامل",        points: 2000, icon: "🎁" },
   ];
 
+  useEffect(() => {
+    supabase.from('redemptions').select('id', { count: 'exact', head: true }).eq('user_id', user.id)
+      .then(({ count }) => setRedeemedCount(count || 0));
+  }, [user.id]);
+
+  const redeem = async (i, reward) => {
+    if (user.points < reward.points || busyIdx !== null) return;
+    setBusyIdx(i);
+    const { error } = await supabase.from('redemptions').insert({
+      user_id: user.id, reward_name: reward.name, points: reward.points,
+    });
+    if (error) { show(`⚠️ تعذّر الاستبدال: ${error.message}`, COLORS.danger); setBusyIdx(null); return; }
+    const newPoints = user.points - reward.points;
+    await supabase.from('users').update({ points: newPoints }).eq('id', user.id);
+    setUsers(prev => prev.map(u => u.id === user.id ? { ...u, points: newPoints } : u));
+    setRedeemedCount(c => c + 1);
+    show(`✅ تم استبدال ${reward.name}`);
+    setBusyIdx(null);
+  };
+
   const players = users.filter(u => u.role === "لاعب").sort((a, b) => b.points - a.points);
   const canSeeRanking = user.role === "مدير" || user.role === "مدرب";
 
   return (
     <div style={{ padding: isDesktop ? "32px" : "16px" }}>
+      {toast && <ToastMsg msg={toast.msg} color={toast.color} />}
       <div style={{ fontSize: isDesktop ? 22 : 18, fontWeight: 800, color: COLORS.textPrimary, marginBottom: 20 }}>⭐ المكافآت والنقاط</div>
 
       <div style={{ display: isDesktop ? "grid" : "block", gridTemplateColumns: "1fr 1fr", gap: 24 }}>
@@ -35,7 +60,7 @@ export function RewardsPage({ user, users }) {
               </div>
               <div style={{ width: 1, background: "#ffffff22" }} />
               <div style={{ textAlign: "center" }}>
-                <div style={{ fontSize: 18, fontWeight: 800, color: "#fff" }}>{redeemed.length}</div>
+                <div style={{ fontSize: 18, fontWeight: 800, color: "#fff" }}>{redeemedCount}</div>
                 <div style={{ fontSize: 10, color: "#ffffff66" }}>مكافآت مستبدلة</div>
               </div>
             </div>
@@ -45,13 +70,13 @@ export function RewardsPage({ user, users }) {
           <div style={{ fontSize: 15, fontWeight: 800, color: COLORS.textPrimary, marginBottom: 12 }}>🎁 استبدال النقاط</div>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             {rewards.map((r, i) => (
-              <div key={i} style={{ background: COLORS.cardBg, border: `1px solid ${redeemed.includes(i) ? COLORS.accent : COLORS.border}`, borderRadius: 15, padding: "15px", textAlign: "center" }}>
+              <div key={i} style={{ background: COLORS.cardBg, border: `1px solid ${COLORS.border}`, borderRadius: 15, padding: "15px", textAlign: "center" }}>
                 <div style={{ fontSize: 34, marginBottom: 8 }}>{r.icon}</div>
                 <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.textPrimary, marginBottom: 6 }}>{r.name}</div>
                 <div style={{ fontSize: 13, color: COLORS.accentGold, fontWeight: 800, marginBottom: 10 }}>⭐ {r.points}</div>
-                <button onClick={() => !redeemed.includes(i) && user.points >= r.points && setRedeemed(prev => [...prev, i])}
-                  style={{ width: "100%", padding: "8px", background: redeemed.includes(i) ? COLORS.accent : user.points >= r.points ? `${COLORS.accent}22` : COLORS.surface, border: `1px solid ${user.points >= r.points ? COLORS.accent : COLORS.border}`, color: redeemed.includes(i) ? "#000" : user.points >= r.points ? COLORS.accent : COLORS.textSecondary, borderRadius: 10, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
-                  {redeemed.includes(i) ? "✅ تم" : user.points >= r.points ? "استبدل" : "نقاط غير كافية"}
+                <button onClick={() => redeem(i, r)} disabled={busyIdx !== null || user.points < r.points}
+                  style={{ width: "100%", padding: "8px", background: user.points >= r.points ? `${COLORS.accent}22` : COLORS.surface, border: `1px solid ${user.points >= r.points ? COLORS.accent : COLORS.border}`, color: user.points >= r.points ? COLORS.accent : COLORS.textSecondary, borderRadius: 10, fontWeight: 700, fontSize: 12, cursor: user.points >= r.points ? "pointer" : "not-allowed" }}>
+                  {busyIdx === i ? "..." : user.points >= r.points ? "استبدل" : "نقاط غير كافية"}
                 </button>
               </div>
             ))}

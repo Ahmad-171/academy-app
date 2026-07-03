@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { supabase } from "../lib/supabase";
 import { COLORS } from "../constants/colors";
 import { useWindowSize } from "../hooks/useWindowSize";
 import { useToast } from "../hooks/useToast";
@@ -8,11 +9,27 @@ export function StorePage({ products = [], setProducts, user }) {
   const [cart, setCart] = useState([]);
   const [category, setCategory] = useState("الكل");
   const [showCart, setShowCart] = useState(false);
+  const [checkingOut, setCheckingOut] = useState(false);
   const { isDesktop } = useWindowSize();
   const { toast, show } = useToast();
 
   const filtered = category === "الكل" ? products : products.filter(p => p.category === category);
   const total = cart.reduce((s, p) => s + p.price, 0);
+
+  const checkout = async () => {
+    if (cart.length === 0 || checkingOut) return;
+    setCheckingOut(true);
+    const { data: order, error } = await supabase.from('orders')
+      .insert({ user_id: user.id, total }).select().single();
+    if (error || !order) { show(`⚠️ تعذّر إتمام الشراء: ${error?.message || ''}`, COLORS.danger); setCheckingOut(false); return; }
+    await supabase.from('order_items').insert(
+      cart.map(item => ({ order_id: order.id, product_id: item.id, product_name: item.name, price: item.price }))
+    );
+    setCart([]);
+    setShowCart(false);
+    setCheckingOut(false);
+    show("✅ تم إتمام الشراء بنجاح!");
+  };
 
   return (
     <div style={{ padding: isDesktop ? "32px" : "16px" }}>
@@ -68,8 +85,8 @@ export function StorePage({ products = [], setProducts, user }) {
                 <span style={{ fontWeight: 800, color: COLORS.textPrimary }}>الإجمالي</span>
                 <span style={{ fontWeight: 900, color: COLORS.accentGold, fontSize: 18 }}>{total} ر.س</span>
               </div>
-              <button onClick={() => { setCart([]); setShowCart(false); show("✅ تم إتمام الشراء بنجاح!"); }}
-                style={{ width: "100%", marginTop: 8, padding: "13px", background: COLORS.accent, border: "none", color: "#000", borderRadius: 12, fontWeight: 800, fontSize: 14, cursor: "pointer" }}>✓ إتمام الشراء</button>
+              <button onClick={checkout} disabled={checkingOut}
+                style={{ width: "100%", marginTop: 8, padding: "13px", background: COLORS.accent, border: "none", color: "#000", borderRadius: 12, fontWeight: 800, fontSize: 14, cursor: "pointer" }}>{checkingOut ? "جاري التنفيذ..." : "✓ إتمام الشراء"}</button>
             </>
           )}
         </Modal>

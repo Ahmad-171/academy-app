@@ -1,21 +1,37 @@
 import { useState } from "react";
+import { supabase } from "../lib/supabase";
 import { COLORS } from "../constants/colors";
-import { memberships } from "../constants/data";
 import { useWindowSize } from "../hooks/useWindowSize";
 
-export function SubscriptionsPage() {
+const PAY_METHODS = ["مدى / Mada", "فيزا / Mastercard", "Apple Pay"];
+
+export function SubscriptionsPage({ user, setUsers, membershipPlans }) {
   const [step, setStep] = useState(1);
   const [selected, setSelected] = useState(null);
   const [signed, setSigned] = useState(false);
   const [payMethod, setPayMethod] = useState(null);
   const [done, setDone] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const { isDesktop } = useWindowSize();
+
+  const completeSubscription = async () => {
+    if (payMethod === null || submitting) return;
+    setSubmitting(true);
+    const plan = membershipPlans[selected];
+    await supabase.from('subscriptions').insert({
+      user_id: user.id, plan: plan.name, price: plan.price, payment_method: PAY_METHODS[payMethod],
+    });
+    await supabase.from('users').update({ membership: plan.name }).eq('id', user.id);
+    setUsers(prev => prev.map(u => u.id === user.id ? { ...u, membership: plan.name } : u));
+    setSubmitting(false);
+    setDone(true);
+  };
 
   if (done) return (
     <div style={{ padding: "80px 24px", textAlign: "center" }}>
       <div style={{ fontSize: 72, marginBottom: 16 }}>🎉</div>
       <div style={{ fontSize: 24, fontWeight: 900, color: COLORS.accent, marginBottom: 8 }}>تم الاشتراك بنجاح!</div>
-      <div style={{ fontSize: 14, color: COLORS.textSecondary, marginBottom: 24 }}>مرحباً بك في عضوية {memberships[selected]?.name}</div>
+      <div style={{ fontSize: 14, color: COLORS.textSecondary, marginBottom: 24 }}>مرحباً بك في عضوية {membershipPlans[selected]?.name}</div>
       <button onClick={() => { setDone(false); setStep(1); setSelected(null); setSigned(false); setPayMethod(null); }}
         style={{ padding: "13px 36px", background: COLORS.accent, border: "none", color: "#000", borderRadius: 14, fontWeight: 800, fontSize: 15, cursor: "pointer" }}>العودة</button>
     </div>
@@ -39,7 +55,7 @@ export function SubscriptionsPage() {
       {step === 1 && (
         <div>
           <div style={{ display: isDesktop ? "grid" : "flex", gridTemplateColumns: "repeat(2,1fr)", flexDirection: "column", gap: 12, marginBottom: 18 }}>
-            {memberships.map((m, i) => (
+            {membershipPlans.map((m, i) => (
               <div key={i} onClick={() => setSelected(i)} style={{ background: m.bg, border: `2px solid ${selected === i ? m.color : m.color + "33"}`, borderRadius: 16, padding: "18px", cursor: "pointer", position: "relative", boxShadow: selected === i ? `0 0 20px ${m.color}44` : "none" }}>
                 {m.popular && <div style={{ position: "absolute", top: -9, right: 14, background: m.color, color: "#000", fontSize: 9, fontWeight: 800, padding: "3px 10px", borderRadius: 20 }}>الأكثر طلباً</div>}
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
@@ -93,7 +109,7 @@ export function SubscriptionsPage() {
             <div style={{ fontSize: 15, fontWeight: 800, color: COLORS.textPrimary, marginBottom: 14 }}>ملخص الطلب</div>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
               <span style={{ color: COLORS.textSecondary }}>الباقة</span>
-              <span style={{ color: COLORS.textPrimary, fontWeight: 700 }}>{memberships[selected]?.name} {memberships[selected]?.icon}</span>
+              <span style={{ color: COLORS.textPrimary, fontWeight: 700 }}>{membershipPlans[selected]?.name} {membershipPlans[selected]?.icon}</span>
             </div>
             <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
               <span style={{ color: COLORS.textSecondary }}>المدة</span>
@@ -101,7 +117,7 @@ export function SubscriptionsPage() {
             </div>
             <div style={{ borderTop: `1px solid ${COLORS.border}`, paddingTop: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <span style={{ color: COLORS.textPrimary, fontWeight: 800, fontSize: 15 }}>الإجمالي</span>
-              <span style={{ color: COLORS.accentGold, fontWeight: 900, fontSize: 22 }}>{memberships[selected]?.price} ر.س</span>
+              <span style={{ color: COLORS.accentGold, fontWeight: 900, fontSize: 22 }}>{membershipPlans[selected]?.price} ر.س</span>
             </div>
           </div>
           {[{ label: "مدى / Mada", icon: "💳", desc: "البطاقة المدفوعة مسبقاً" }, { label: "فيزا / Mastercard", icon: "💳", desc: "بطاقة الائتمان" }, { label: "Apple Pay", icon: "🍎", desc: "الدفع السريع" }].map((m, i) => (
@@ -116,9 +132,9 @@ export function SubscriptionsPage() {
           ))}
           <div style={{ display: "flex", gap: 10, marginTop: 14 }}>
             <button onClick={() => setStep(2)} style={{ flex: 1, padding: "13px", borderRadius: 13, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.textSecondary, fontWeight: 700, cursor: "pointer" }}>رجوع</button>
-            <button onClick={() => payMethod !== null && setDone(true)}
+            <button onClick={completeSubscription} disabled={payMethod === null || submitting}
               style={{ flex: 2, padding: "13px", borderRadius: 13, background: payMethod !== null ? `linear-gradient(135deg,${COLORS.accent},#00a07a)` : COLORS.surface, border: "none", color: payMethod !== null ? "#000" : COLORS.textSecondary, fontWeight: 900, fontSize: 15, cursor: payMethod !== null ? "pointer" : "not-allowed" }}>
-              ✓ إتمام الدفع
+              {submitting ? "جاري التنفيذ..." : "✓ إتمام الدفع"}
             </button>
           </div>
         </div>

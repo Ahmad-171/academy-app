@@ -1,10 +1,9 @@
 import { useState, useEffect } from "react";
 import { COLORS } from "../constants/colors";
-import { memberships } from "../constants/data";
 import { useWindowSize } from "../hooks/useWindowSize";
 import { StatCard, Avatar, Badge } from "../components/ui";
 
-export function HomePage({ onNav, user, users, directorMsg, setDirectorMsg }) {
+export function HomePage({ onNav, user, users, directorMsg, setDirectorMsg, membershipPlans }) {
   const [visible, setVisible] = useState(false);
   const [editMsg, setEditMsg] = useState(false);
   const [tempMsg, setTempMsg] = useState(directorMsg);
@@ -77,7 +76,7 @@ export function HomePage({ onNav, user, users, directorMsg, setDirectorMsg }) {
         <div style={{ fontSize: isDesktop ? 19 : 16, fontWeight: 800, color: COLORS.textPrimary, marginBottom: 4 }}>العضويات</div>
         <div style={{ fontSize: 13, color: COLORS.textSecondary, marginBottom: 12 }}>اختر الباقة المناسبة</div>
         <div style={{ display: isDesktop ? "grid" : "flex", gridTemplateColumns: isDesktop ? "repeat(4,1fr)" : undefined, gap: 12, overflowX: isDesktop ? "visible" : "auto", paddingBottom: 8 }}>
-          {memberships.map((m, i) => (
+          {membershipPlans.map((m, i) => (
             <div key={i} style={{ minWidth: isDesktop ? "unset" : 182, borderRadius: 18, background: m.bg, border: `1px solid ${m.color}44`, padding: "16px 14px", position: "relative", flexShrink: 0 }}>
               {m.popular && <div style={{ position: "absolute", top: -10, right: 12, background: m.color, color: "#000", fontSize: 9, fontWeight: 800, padding: "3px 10px", borderRadius: 20 }}>الأكثر طلباً</div>}
               <div style={{ fontSize: 24, marginBottom: 6 }}>{m.icon}</div>

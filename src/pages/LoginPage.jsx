@@ -1,9 +1,11 @@
 import { useState } from "react";
+import { supabase } from "../lib/supabase";
+import { signIn } from "../lib/auth";
 import { COLORS } from "../constants/colors";
 import { useWindowSize } from "../hooks/useWindowSize";
 import { Badge } from "../components/ui";
 
-export function LoginPage({ onLogin, users }) {
+export function LoginPage({ onLogin }) {
   const [idNum, setIdNum] = useState("");
   const [pass, setPass] = useState("");
   const [error, setError] = useState("");
@@ -11,16 +13,28 @@ export function LoginPage({ onLogin, users }) {
   const [loading, setLoading] = useState(false);
   const { isDesktop } = useWindowSize();
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     setError(""); setLoading(true);
-    setTimeout(() => {
-      const user = users.find(u => u.id === idNum && u.password === pass);
-      if (user) {
-        if (user.status === "موقوف") setError("هذا الحساب موقوف، تواصل مع الإدارة");
-        else onLogin(user);
-      } else setError("رقم الهوية أو كلمة السر غير صحيحة");
+    const { error: authError } = await signIn(idNum, pass);
+    if (authError) {
+      setError("رقم الهوية أو كلمة السر غير صحيحة");
       setLoading(false);
-    }, 700);
+      return;
+    }
+    const { data: profile, error: profileError } = await supabase
+      .from('users').select('*').eq('id', idNum).single();
+    if (profileError || !profile) {
+      setError("تعذّر تحميل بيانات الحساب");
+      setLoading(false);
+      return;
+    }
+    if (profile.status === "موقوف") {
+      setError("هذا الحساب موقوف، تواصل مع الإدارة");
+      setLoading(false);
+      return;
+    }
+    onLogin(profile);
+    setLoading(false);
   };
 
   const demos = [
@@ -41,20 +55,9 @@ export function LoginPage({ onLogin, users }) {
           <div style={{ flex: 1, textAlign: "center" }}>
             <div style={{ width: 110, height: 110, margin: "0 auto 20px", background: "linear-gradient(135deg,#00c896,#0066cc)", borderRadius: 28, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 54, boxShadow: "0 0 60px #00c89644" }}>⚽</div>
             <div style={{ fontSize: 32, fontWeight: 900, color: COLORS.textPrimary, marginBottom: 6 }}>أكاديمية النجوم</div>
-            <div style={{ fontSize: 13, color: COLORS.accent, letterSpacing: 3, marginBottom: 28 }}>ACADEMY OF STARS</div>
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-              {[
-                ["⚽", "اللاعبين",  String(users.filter(u => u.role === "لاعب").length)],
-                ["🏅", "المدربين",  String(users.filter(u => u.role === "مدرب").length)],
-                ["👨‍👦","أولياء الأمور", String(users.filter(u => u.role === "ولي أمر").length)],
-                ["👥", "إجمالي الحسابات", String(users.length)],
-              ].map(([icon, label, val], i) => (
-                <div key={i} style={{ background: COLORS.cardBg, border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: "14px", textAlign: "center" }}>
-                  <div style={{ fontSize: 26 }}>{icon}</div>
-                  <div style={{ fontSize: 20, fontWeight: 900, color: COLORS.accent, marginTop: 4 }}>{val}</div>
-                  <div style={{ fontSize: 11, color: COLORS.textSecondary, marginTop: 2 }}>{label}</div>
-                </div>
-              ))}
+            <div style={{ fontSize: 13, color: COLORS.accent, letterSpacing: 3, marginBottom: 12 }}>ACADEMY OF STARS</div>
+            <div style={{ fontSize: 13, color: COLORS.textSecondary, lineHeight: 1.9, maxWidth: 320, margin: "0 auto" }}>
+              منصة إدارة متكاملة للاعبين والمدربين وأولياء الأمور — جداول التدريب، الحضور، البطولات، والمزيد.
             </div>
           </div>
         )}

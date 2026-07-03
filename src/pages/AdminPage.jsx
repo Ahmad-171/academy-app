@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { supabase } from "../lib/supabase";
+import { signUpAccount } from "../lib/auth";
 import { COLORS } from "../constants/colors";
 import { memberships, financialData, PERMISSION_LABELS } from "../constants/data";
 import { useWindowSize } from "../hooks/useWindowSize";
@@ -31,15 +32,14 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
   const openEdit = (u) => { setForm({ ...EMPTY_FORM, ...u, permissions: { ...EMPTY_FORM.permissions, ...(u.permissions || {}) } }); setEditId(u.id); setModal("form"); };
 
   const saveAccount = async () => {
-    if (!form.name?.trim() || !form.id?.trim() || !form.password?.trim()) {
-      show("⚠️ الاسم ورقم الهوية وكلمة السر مطلوبة", COLORS.warning); return;
+    if (!form.name?.trim() || !form.id?.trim() || (!editId && !form.password?.trim())) {
+      show("⚠️ الاسم ورقم الهوية مطلوبان" + (editId ? "" : " وكلمة السر"), COLORS.warning); return;
     }
     if (!editId && users.find(u => u.id === form.id)) {
       show("⚠️ رقم الهوية مستخدم مسبقاً", COLORS.warning); return;
     }
-    const newUserData = {
+    const profileData = {
       id: form.id,
-      password: form.password,
       role: form.role,
       custom_role: form.customRole || form.role,
       name: form.name,
@@ -47,25 +47,26 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
       membership: form.membership || '-',
       status: form.status || 'نشط',
       position: form.position || '-',
-      points: 0,
-      attendance: 0,
       child_id: form.childId || null,
       coach_id: form.coachId || null,
       permissions: form.permissions || {},
-      medical: { health: "جيدة", injuries: "لا يوجد", allergies: "لا يوجد", medications: "لا يوجد" },
       ratings: { speed: 70, passing: 70, shooting: 70, defense: 70, spirit: 70 },
-      attendance_log: [false, false, false, false, false, false, false, false, false, false],    };
+      attendance_log: [false, false, false, false, false, false, false, false, false, false],
+    };
 
     if (editId) {
       await supabase.from('users').update({
-        ...newUserData,
+        ...profileData,
         points: form.points,
         attendance: form.attendance,
       }).eq('id', editId);
       show("✅ تم تحديث الحساب");
     } else {
-      const { error } = await supabase.from('users').insert(newUserData);
+      const { authUid, error: authError } = await signUpAccount(form.id, form.password);
+      if (authError || !authUid) { show(`⚠️ خطأ بإنشاء حساب الدخول: ${authError?.message || ''}`, COLORS.danger); return; }
+      const { error } = await supabase.from('users').insert({ ...profileData, auth_uid: authUid, points: 0, attendance: 0 });
       if (error) { show(`⚠️ خطأ: ${error.message}`, COLORS.danger); return; }
+      await supabase.from('medical_records').insert({ user_id: form.id });
       show("✅ تم إضافة الحساب");
     }
     await loadData();
@@ -415,7 +416,7 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
           <div style={{ display: isDesktop ? "grid" : "block", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             <Field label="الاسم *" value={form.name || ""} onChange={v => setForm(p => ({ ...p, name: v }))} />
             <Field label="رقم الهوية *" value={form.id || ""} onChange={v => setForm(p => ({ ...p, id: v }))} />
-            <Field label="كلمة السر *" value={form.password || ""} onChange={v => setForm(p => ({ ...p, password: v }))} />
+            {!editId && <Field label="كلمة السر *" value={form.password || ""} onChange={v => setForm(p => ({ ...p, password: v }))} />}
             <Field label="نوع الحساب" value={form.role || "لاعب"} onChange={v => setForm(p => ({ ...p, role: v, customRole: v }))}
               options={["لاعب", "مدرب", "ولي أمر", "مدير"]} />
             <Field label="المسمى المخصص" value={form.customRole || ""} onChange={v => setForm(p => ({ ...p, customRole: v }))} placeholder="مثال: مساعد مدرب" />

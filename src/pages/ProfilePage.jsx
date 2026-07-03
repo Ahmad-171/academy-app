@@ -35,7 +35,7 @@ export function ProfilePage({ user, users, setUsers }) {
   };
 
   const saveMedical = async () => {
-    await supabase.from('users').update({ medical: editMedical }).eq('id', profileUser.id);
+    await supabase.from('medical_records').upsert({ user_id: profileUser.id, ...editMedical });
     setUsers(prev => prev.map(u => u.id === profileUser.id ? { ...u, medical: editMedical } : u));
     show("✅ تم حفظ السجل الطبي");
   };

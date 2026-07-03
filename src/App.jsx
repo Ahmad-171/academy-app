@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { supabase } from "./lib/supabase";
+import { getSession, signOut } from "./lib/auth";
 import { COLORS } from "./constants/colors";
 import { ROLE_TABS, ALL_TABS } from "./constants/data";
 import { useWindowSize } from "./hooks/useWindowSize";
@@ -16,6 +17,11 @@ import { NotificationsPage } from "./pages/NotificationsPage";
 import { LibraryPage } from "./pages/LibraryPage";
 import { SubscriptionsPage } from "./pages/SubscriptionsPage";
 import { AdminPage } from "./pages/AdminPage";
+
+// أعمدة صريحة بدل select('*') — لا تشمل password أبدًا (كلمة السر يديرها
+// Supabase Auth حصريًا). البيانات الطبية تُجلب من جدول medical_records
+// المنفصل وتُدمج أدناه.
+const USERS_COLUMNS = "id,auth_uid,role,custom_role,name,phone,membership,status,position,points,attendance,child_id,coach_id,permissions,ratings,attendance_log";
 
 export default function App() {
   const [currentUser, setCurrentUser]     = useState(null);
@@ -36,6 +42,7 @@ export default function App() {
     try {
       const [
         { data: usersData },
+        { data: medicalData },
         { data: scheduleData },
         { data: notifsData },
         { data: teamsData },
@@ -44,7 +51,8 @@ export default function App() {
         { data: productsData },
         { data: settingsData },
       ] = await Promise.all([
-        supabase.from('users').select('*'),
+        supabase.from('users').select(USERS_COLUMNS),
+        supabase.from('medical_records').select('*'),
         supabase.from('schedule').select('*').order('order'),
         supabase.from('notifications').select('*').order('id', { ascending: false }),
         supabase.from('tournament_teams').select('*'),
@@ -54,13 +62,19 @@ export default function App() {
         supabase.from('settings').select('*'),
       ]);
 
-      if (usersData) setUsers(usersData.map(u => ({
-        ...u,
-        customRole: u.custom_role,
-        childId: u.child_id,
-        coachId: u.coach_id,
-        attendanceLog: u.attendance_log || [],
-      })));
+      if (usersData) setUsers(usersData.map(u => {
+        const medical = medicalData?.find(m => m.user_id === u.id);
+        return {
+          ...u,
+          customRole: u.custom_role,
+          childId: u.child_id,
+          coachId: u.coach_id,
+          attendanceLog: u.attendance_log || [],
+          medical: medical
+            ? { health: medical.health, injuries: medical.injuries, allergies: medical.allergies, medications: medical.medications }
+            : { health: "جيدة", injuries: "لا يوجد", allergies: "لا يوجد", medications: "لا يوجد" },
+        };
+      }));
       if (scheduleData) setSchedule(scheduleData);
       if (notifsData) setNotifications(notifsData.map(n => ({ ...n, roles: n.roles || [] })));
       if (teamsData && scorersData) setTournaments({ teams: teamsData, scorers: scorersData });
@@ -78,6 +92,17 @@ export default function App() {
 
   useEffect(() => { loadData(); }, [loadData]);
 
+  // ── استعادة الجلسة تلقائيًا بعد تحديث الصفحة ──
+  useEffect(() => {
+    if (loading || currentUser) return;
+    (async () => {
+      const session = await getSession();
+      if (!session) return;
+      const match = users.find(u => u.auth_uid === session.user.id);
+      if (match) setCurrentUser(match);
+    })();
+  }, [loading, users, currentUser]);
+
   // ── حفظ رسالة المدير ──
   const saveDirectorMsg = async (msg) => {
     setDirectorMsg(msg);
@@ -87,7 +112,7 @@ export default function App() {
   const liveUser = currentUser ? users.find(u => u.id === currentUser.id) || currentUser : null;
 
   const handleLogin  = (user) => { setCurrentUser(user); setActive("home"); };
-  const handleLogout = () => { setCurrentUser(null); setActive("home"); };
+  const handleLogout = async () => { await signOut(); setCurrentUser(null); setActive("home"); };
   const allowedIds = ROLE_TABS[liveUser?.role] || [];
   const myTabs = ALL_TABS.filter(t => allowedIds.includes(t.id));
   const bottomTabs = myTabs.slice(0, 5);
@@ -116,7 +141,7 @@ export default function App() {
     </div>
   );
 
-  if (!liveUser) return <LoginPage onLogin={handleLogin} users={users} />;
+  if (!liveUser) return <LoginPage onLogin={handleLogin} />;
 
   return (
     <div style={{ minHeight: "100vh", background: COLORS.darkBg, fontFamily: "'Cairo',sans-serif", direction: "rtl", color: COLORS.textPrimary, overflowX: "hidden" }}>

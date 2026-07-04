@@ -54,7 +54,7 @@ export function NotificationsPage({ user, notifications, setNotifications }) {
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
         <div>
-          <div style={{ fontSize: isDesktop ? 22 : 18, fontWeight: 800, color: COLORS.textPrimary }}>🔔 الإشعارات</div>
+          <div style={{ fontSize: isDesktop ? 22 : 18, fontWeight: 800, color: COLORS.textPrimary }}>📢 الفعاليات والرسائل</div>
           {unread > 0 && <div style={{ fontSize: 12, color: COLORS.danger, marginTop: 2 }}>{unread} غير مقروء</div>}
         </div>
         <div style={{ display: "flex", gap: 8 }}>

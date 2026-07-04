@@ -49,7 +49,7 @@ export function LibraryPage({ user, library, setLibrary }) {
 
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
         <div>
-          <div style={{ fontSize: isDesktop ? 22 : 18, fontWeight: 800, color: COLORS.textPrimary }}>📚 المكتبة</div>
+          <div style={{ fontSize: isDesktop ? 22 : 18, fontWeight: 800, color: COLORS.textPrimary }}>🖼️ معرض الصور</div>
           <div style={{ fontSize: 12, color: COLORS.textSecondary, marginTop: 2 }}>{library.length} عنصر</div>
         </div>
         {canAdd && (

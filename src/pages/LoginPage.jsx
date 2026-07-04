@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { COLORS } from "../constants/colors";
+import { BRAND_NAME, BRAND_TAGLINE } from "../constants/brand";
 import { useWindowSize } from "../hooks/useWindowSize";
 import { Badge } from "../components/ui";
+import { Logo } from "../components/Logo";
 
 export function LoginPage({ onLogin, users, loadError }) {
   const [idNum, setIdNum] = useState("");
@@ -49,9 +51,9 @@ export function LoginPage({ onLogin, users, loadError }) {
 
         {isDesktop && (
           <div style={{ flex: 1, textAlign: "center" }}>
-            <div style={{ width: 110, height: 110, margin: "0 auto 20px", background: "linear-gradient(135deg,#00c896,#0066cc)", borderRadius: 28, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 54, boxShadow: "0 0 60px #00c89644" }}>⚽</div>
-            <div style={{ fontSize: 32, fontWeight: 900, color: COLORS.textPrimary, marginBottom: 6 }}>أكاديمية النجوم</div>
-            <div style={{ fontSize: 13, color: COLORS.accent, letterSpacing: 3, marginBottom: 28 }}>ACADEMY OF STARS</div>
+            <div style={{ margin: "0 auto 20px", filter: "drop-shadow(0 0 40px #1fc7c766)" }}><Logo size={110} /></div>
+            <div style={{ fontSize: 32, fontWeight: 900, color: COLORS.textPrimary, marginBottom: 6 }}>{BRAND_NAME}</div>
+            <div style={{ fontSize: 13, color: COLORS.accent, letterSpacing: 3, marginBottom: 28 }}>{BRAND_TAGLINE}</div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               {[
                 ["⚽", "اللاعبين",  String(users.filter(u => u.role === "لاعب").length)],
@@ -72,8 +74,8 @@ export function LoginPage({ onLogin, users, loadError }) {
         <div style={{ width: isDesktop ? 370 : "100%" }}>
           {!isDesktop && (
             <div style={{ textAlign: "center", marginBottom: 24 }}>
-              <div style={{ width: 76, height: 76, margin: "0 auto 10px", background: "linear-gradient(135deg,#00c896,#0066cc)", borderRadius: 20, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 36, boxShadow: "0 0 40px #00c89644" }}>⚽</div>
-              <div style={{ fontSize: 20, fontWeight: 900, color: COLORS.textPrimary }}>أكاديمية النجوم</div>
+              <div style={{ margin: "0 auto 10px" }}><Logo size={76} /></div>
+              <div style={{ fontSize: 20, fontWeight: 900, color: COLORS.textPrimary }}>{BRAND_NAME}</div>
             </div>
           )}
 

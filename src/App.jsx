@@ -1,29 +1,28 @@
 import { useState, useCallback, useEffect } from "react";
 import { supabase } from "./lib/supabase";
 import { COLORS } from "./constants/colors";
+import { BRAND_NAME, BRAND_TAGLINE } from "./constants/brand";
 import { ROLE_TABS, ALL_TABS } from "./constants/data";
 import { useWindowSize } from "./hooks/useWindowSize";
 import { Avatar } from "./components/ui";
+import { Logo } from "./components/Logo";
 import { MoreMenu } from "./components/MoreMenu";
 import { LoginPage } from "./pages/LoginPage";
 import { HomePage } from "./pages/HomePage";
-import { SchedulePage } from "./pages/SchedulePage";
-import { TournamentsPage } from "./pages/TournamentsPage";
-import { RewardsPage } from "./pages/RewardsPage";
-import { ProfilePage } from "./pages/ProfilePage";
+import { PlayersRegistryPage } from "./pages/PlayersRegistryPage";
 import { StorePage } from "./pages/StorePage";
 import { NotificationsPage } from "./pages/NotificationsPage";
 import { LibraryPage } from "./pages/LibraryPage";
 import { SubscriptionsPage } from "./pages/SubscriptionsPage";
+import { MembershipsPage } from "./pages/MembershipsPage";
+import { AboutPage } from "./pages/AboutPage";
 import { AdminPage } from "./pages/AdminPage";
 
 export default function App() {
   const [currentUser, setCurrentUser]     = useState(null);
   const [active, setActive]               = useState("home");
   const [users, setUsers]                 = useState([]);
-  const [schedule, setSchedule]           = useState([]);
   const [notifications, setNotifications] = useState([]);
-  const [tournaments, setTournaments]     = useState({ teams: [], scorers: [] });
   const [library, setLibrary]             = useState([]);
   const [products, setProducts]           = useState([]);
   const [directorMsg, setDirectorMsg]     = useState("نؤمن بأن كل موهبة تستحق الرعاية والتطوير.");
@@ -38,19 +37,13 @@ export default function App() {
     try {
       const [
         usersRes,
-        scheduleRes,
         notifsRes,
-        teamsRes,
-        scorersRes,
         libraryRes,
         productsRes,
         settingsRes,
       ] = await Promise.all([
         supabase.from('users').select('*'),
-        supabase.from('schedule').select('*').order('order'),
         supabase.from('notifications').select('*').order('id', { ascending: false }),
-        supabase.from('tournament_teams').select('*'),
-        supabase.from('tournament_scorers').select('*'),
         supabase.from('library').select('*').order('id', { ascending: false }),
         supabase.from('products').select('*'),
         supabase.from('settings').select('*'),
@@ -58,7 +51,7 @@ export default function App() {
 
       // نلقط أي خطأ فعلي من Supabase (RLS، جدول غير موجود، مشروع نائم...) بدل
       // ما نتجاهله بصمت ونخلّي المستخدم يشوف "بيانات خاطئة" بدون سبب حقيقي.
-      const firstError = [usersRes, scheduleRes, notifsRes, teamsRes, scorersRes, libraryRes, productsRes, settingsRes]
+      const firstError = [usersRes, notifsRes, libraryRes, productsRes, settingsRes]
         .map(r => r.error).find(Boolean);
       if (firstError) {
         console.error('Supabase load error:', firstError);
@@ -66,10 +59,7 @@ export default function App() {
       }
 
       const { data: usersData } = usersRes;
-      const { data: scheduleData } = scheduleRes;
       const { data: notifsData } = notifsRes;
-      const { data: teamsData } = teamsRes;
-      const { data: scorersData } = scorersRes;
       const { data: libraryData } = libraryRes;
       const { data: productsData } = productsRes;
       const { data: settingsData } = settingsRes;
@@ -81,9 +71,7 @@ export default function App() {
         coachId: u.coach_id,
         attendanceLog: u.attendance_log || [],
       })));
-      if (scheduleData) setSchedule(scheduleData);
       if (notifsData) setNotifications(notifsData.map(n => ({ ...n, roles: n.roles || [] })));
-      if (teamsData && scorersData) setTournaments({ teams: teamsData, scorers: scorersData });
       if (libraryData) setLibrary(libraryData.map(i => ({ ...i, addedBy: i.added_by })));
       if (productsData) setProducts(productsData.map(p => ({ ...p, images: p.images || [] })));
       if (settingsData) {
@@ -117,13 +105,12 @@ export default function App() {
   const renderPage = () => {
     switch (active) {
       case "home":          return <HomePage onNav={setActive} user={liveUser} users={users} directorMsg={directorMsg} setDirectorMsg={saveDirectorMsg} />;
-      case "schedule":      return <SchedulePage user={liveUser} schedule={schedule} setSchedule={setSchedule} users={users} setUsers={setUsers} />;
-      case "tournaments":   return <TournamentsPage user={liveUser} tournaments={tournaments} setTournaments={setTournaments} />;
-      case "rewards":       return <RewardsPage user={liveUser} users={users} />;
+      case "players":       return <PlayersRegistryPage user={liveUser} users={users} setUsers={setUsers} loadData={loadData} />;
       case "store":         return <StorePage products={products} setProducts={setProducts} user={liveUser} />;
-      case "profile":       return <ProfilePage user={liveUser} users={users} setUsers={setUsers} />;
       case "notifications": return <NotificationsPage user={liveUser} notifications={notifications} setNotifications={setNotifications} />;
-      case "subscriptions": return <SubscriptionsPage />;
+      case "subscriptions": return <SubscriptionsPage user={liveUser} setUsers={setUsers} />;
+      case "memberships":   return <MembershipsPage user={liveUser} />;
+      case "about":         return <AboutPage user={liveUser} setUsers={setUsers} />;
       case "library":       return <LibraryPage user={liveUser} library={library} setLibrary={setLibrary} />;
       case "admin":         return liveUser.role === "مدير" ? <AdminPage user={liveUser} users={users} setUsers={setUsers} products={products} setProducts={setProducts} loadData={loadData} /> : <HomePage onNav={setActive} user={liveUser} users={users} directorMsg={directorMsg} setDirectorMsg={saveDirectorMsg} />;
       default:              return <HomePage onNav={setActive} user={liveUser} users={users} directorMsg={directorMsg} setDirectorMsg={saveDirectorMsg} />;
@@ -131,7 +118,7 @@ export default function App() {
   };
   if (loading) return (
     <div style={{ minHeight: "100vh", background: "#0a0e1a", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16, fontFamily: "'Cairo',sans-serif" }}>
-      <div style={{ width: 60, height: 60, background: "linear-gradient(135deg,#00c896,#0066cc)", borderRadius: 16, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, animation: "spin 1s linear infinite" }}>⚽</div>
+      <div style={{ animation: "spin 1s linear infinite" }}><Logo size={60} /></div>
       <div style={{ color: "#00c896", fontSize: 16, fontWeight: 700 }}>جاري التحميل...</div>
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </div>
@@ -152,10 +139,10 @@ export default function App() {
             {/* الشعار */}
             <div style={{ padding: "22px 18px 16px", borderBottom: `1px solid ${COLORS.border}` }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-                <div style={{ width: 40, height: 40, borderRadius: 12, background: "linear-gradient(135deg,#00c896,#0066cc)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 20 }}>⚽</div>
+                <Logo size={40} />
                 <div>
-                  <div style={{ fontSize: 14, fontWeight: 800, color: COLORS.textPrimary }}>أكاديمية النجوم</div>
-                  <div style={{ fontSize: 9, color: COLORS.accent, letterSpacing: 1 }}>ACADEMY OF STARS</div>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: COLORS.textPrimary }}>{BRAND_NAME}</div>
+                  <div style={{ fontSize: 9, color: COLORS.accent, letterSpacing: 1 }}>{BRAND_TAGLINE}</div>
                 </div>
               </div>
 
@@ -210,9 +197,9 @@ export default function App() {
           {!isDesktop && (
             <div style={{ background: COLORS.cardBg, borderBottom: `1px solid ${COLORS.border}`, padding: "11px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", position: "sticky", top: 0, zIndex: 50 }}>
               <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                <div style={{ width: 32, height: 32, borderRadius: 9, background: "linear-gradient(135deg,#00c896,#0066cc)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 16 }}>⚽</div>
+                <Logo size={32} />
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: COLORS.textPrimary }}>أكاديمية النجوم</div>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: COLORS.textPrimary }}>{BRAND_NAME}</div>
                   <div style={{ fontSize: 9, color: COLORS.accent }}>{liveUser.customRole || liveUser.role}: {liveUser.name}</div>
                 </div>
               </div>

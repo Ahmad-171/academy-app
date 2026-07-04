@@ -1,12 +1,14 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { supabase } from "../lib/supabase";
 import { COLORS } from "../constants/colors";
-import { memberships, financialData, PERMISSION_LABELS } from "../constants/data";
+import { financialData, PERMISSION_LABELS } from "../constants/data";
 import { useWindowSize } from "../hooks/useWindowSize";
 import { useToast } from "../hooks/useToast";
 import { StatCard, Avatar, Badge, MiniBar, Modal, Field, ToastMsg } from "../components/ui";
-import { PlayersManager } from "./PlayersManager";
 import { FinanceManager } from "./FinanceManager";
+import { AttendanceManager } from "./AttendanceManager";
+import { EvaluationManager } from "./EvaluationManager";
+import { NotesManager } from "./NotesManager";
 
 export function AdminPage({ user, users, setUsers, products, setProducts, loadData }) {
   const [adminTab, setAdminTab] = useState("overview");
@@ -17,14 +19,23 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
   const [search, setSearch] = useState("");
   const [filterRole, setFilterRole] = useState("الكل");
   const [permTarget, setPermTarget] = useState(null);
+  const productPriceEdits = useRef({});
   const { isDesktop } = useWindowSize();
   const { toast, show } = useToast();
+
+  const saveProductPrice = async (p) => {
+    const price = productPriceEdits.current[p.id] ?? p.price;
+    const { error } = await supabase.from('products').update({ price: Number(price) }).eq('id', p.id);
+    if (error) { show(`⚠️ خطأ: ${error.message}`, COLORS.danger); return; }
+    setProducts(prev => prev.map(x => x.id === p.id ? { ...x, price: Number(price) } : x));
+    show(`✅ تم تحديث سعر ${p.name}`);
+  };
 
   const EMPTY_FORM = {
     name: "", id: "", password: "", role: "لاعب", customRole: "لاعب",
     position: "-", phone: "", membership: "فضي", status: "نشط",
     childId: "", coachId: "",
-    permissions: { editSchedule: false, editData: false, sendNotifications: false, editRatings: false, editMedical: false, editLibrary: false, editTournaments: false },
+    permissions: { editSchedule: false, editData: false, sendNotifications: false, editRatings: false, editMedical: false, editLibrary: false, editCommerce: false },
   };
 
   const openAdd  = () => { setForm(EMPTY_FORM); setEditId(null); setModal("form"); };
@@ -102,7 +113,6 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
 
   const players  = users.filter(u => u.role === "لاعب");
   const coaches  = users.filter(u => u.role === "مدرب");
-  const parents  = users.filter(u => u.role === "ولي أمر");
   const avgAtt   = players.length ? Math.round(players.reduce((s, p) => s + (p.attendance || 0), 0) / players.length) : 0;
   const statusColor = s => s === "موقوف" ? COLORS.danger : s === "معلق" ? COLORS.warning : COLORS.accent;
   const roleColor   = r => r === "مدير" ? COLORS.purple : r === "مدرب" ? COLORS.accentGold : r === "ولي أمر" ? COLORS.accentBlue : COLORS.accent;
@@ -122,13 +132,15 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
       {/* تبويبات */}
       <div style={{ display: "flex", gap: 8, overflowX: "auto", marginBottom: 20, paddingBottom: 2 }}>
         {[
-          { id: "overview",     label: "📊 نظرة عامة" },
+          { id: "overview",     label: "📊 لوحة التحكم" },
           { id: "accounts",     label: "👥 الحسابات" },
           { id: "permissions",  label: "🔑 الصلاحيات" },
+          { id: "attendance",   label: "🕒 الحضور والانصراف" },
+          { id: "evaluation",   label: "⭐ التقييم" },
+          { id: "notes",        label: "📝 الملاحظات" },
           { id: "finance",      label: "💰 المالية" },
           { id: "reports",      label: "📈 التقارير" },
           { id: "pricing",      label: "💲 الأسعار" },
-          { id: "players",      label: "⚽ اللاعبون" },
         ].map(t => (
           <button key={t.id} onClick={() => setAdminTab(t.id)} style={{ padding: "9px 16px", borderRadius: 20, whiteSpace: "nowrap", flexShrink: 0, background: adminTab === t.id ? COLORS.purple : COLORS.cardBg, border: `1px solid ${adminTab === t.id ? COLORS.purple : COLORS.border}`, color: adminTab === t.id ? "#fff" : COLORS.textSecondary, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>{t.label}</button>
         ))}
@@ -139,9 +151,9 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
         <div>
           <div style={{ overflowX: "auto", marginBottom: 22, paddingBottom: 4, WebkitOverflowScrolling: "touch" }}>
             <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(4,1fr)" : "repeat(4,160px)", gap: 12, minWidth: isDesktop ? "unset" : "max-content" }}>
-              <StatCard label="لاعب" value={String(players.length)} icon="⚽" color={COLORS.accent} sub={`${players.filter(p=>p.status!=="موقوف").length} نشط`} />
-              <StatCard label="مدرب" value={String(coaches.length)} icon="🏅" color={COLORS.accentGold} sub="في الأكاديمية" />
-              <StatCard label="ولي أمر" value={String(parents.length)} icon="👨‍👦" color={COLORS.accentBlue} sub="مسجل" />
+              <StatCard label="إجمالي المشتركين" value={String(players.length)} icon="👥" color={COLORS.accent} sub="لاعب مسجل" />
+              <StatCard label="مشترك نشط" value={String(players.filter(p => p.status !== "موقوف").length)} icon="✅" color={COLORS.accentGold} sub="حساب فعّال" />
+              <StatCard label="مشترك غير نشط" value={String(players.filter(p => p.status === "موقوف").length)} icon="⛔" color={COLORS.danger} sub="حساب موقوف" />
               <StatCard label="متوسط الحضور" value={`${avgAtt}٪`} icon="📊" color={COLORS.purple} sub="هذا الموسم" />
             </div>
           </div>
@@ -271,48 +283,21 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
       {adminTab === "finance" && (
   <FinanceManager user={user} />
 )}
+      {/* الحضور والانصراف */}
+      {adminTab === "attendance" && (
+        <AttendanceManager users={users} />
+      )}
+      {/* التقييم */}
+      {adminTab === "evaluation" && (
+        <EvaluationManager users={users} />
+      )}
+      {/* الملاحظات */}
+      {adminTab === "notes" && (
+        <NotesManager users={users} />
+      )}
 {/* الأسعار */}
 {adminTab === "pricing" && (
   <div>
-    {/* أسعار الاشتراكات */}
-    <div style={{ fontSize: 16, fontWeight: 800, color: COLORS.textPrimary, marginBottom: 14 }}>
-      💳 أسعار باقات الاشتراك
-    </div>
-    <div style={{ display: isDesktop ? "grid" : "block", gridTemplateColumns: "1fr 1fr", gap: 12, marginBottom: 28 }}>
-      {memberships.map((m, i) => (
-        <div key={i} style={{ background: COLORS.cardBg, border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: "16px", marginBottom: isDesktop ? 0 : 10 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-            <span style={{ fontSize: 24 }}>{m.icon}</span>
-            <div style={{ color: m.color, fontWeight: 800, fontSize: 15 }}>{m.name}</div>
-          </div>
-          <div style={{ marginBottom: 10 }}>
-            <div style={{ fontSize: 11, color: COLORS.textSecondary, marginBottom: 5 }}>السعر الشهري (ر.س)</div>
-            <input
-              type="number"
-              defaultValue={m.price}
-              onChange={e => { m.price = e.target.value; }}
-              style={{ width: "100%", background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: m.color, borderRadius: 10, padding: "10px 12px", fontSize: 18, fontWeight: 900, boxSizing: "border-box" }}
-            />
-          </div>
-          <div style={{ marginBottom: 10 }}>
-            <div style={{ fontSize: 11, color: COLORS.textSecondary, marginBottom: 5 }}>المزايا (سطر لكل ميزة)</div>
-            <textarea
-              defaultValue={m.features.join("\n")}
-              onChange={e => { m.features = e.target.value.split("\n").filter(f => f.trim()); }}
-              rows={4}
-              style={{ width: "100%", background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.textPrimary, borderRadius: 10, padding: "10px 12px", fontSize: 12, resize: "vertical", boxSizing: "border-box" }}
-            />
-          </div>
-          <button
-            onClick={() => show(`✅ تم تحديث باقة ${m.name}`)}
-            style={{ width: "100%", padding: "10px", background: m.color, border: "none", color: "#000", borderRadius: 10, fontWeight: 800, fontSize: 13, cursor: "pointer" }}>
-            💾 حفظ التغييرات
-          </button>
-        </div>
-      ))}
-    </div>
-
-    {/* أسعار المتجر */}
     <div style={{ fontSize: 16, fontWeight: 800, color: COLORS.textPrimary, marginBottom: 14 }}>
       🛒 أسعار منتجات المتجر
     </div>
@@ -326,7 +311,7 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
           </tr>
         </thead>
         <tbody>
-          {products.map((p, i) => (
+          {products.map((p) => (
             <tr key={p.id} style={{ borderBottom: `1px solid ${COLORS.border}` }}>
               <td style={{ padding: "12px 14px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -341,13 +326,13 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
                 <input
                   type="number"
                   defaultValue={p.price}
-                  onChange={e => { p.price = Number(e.target.value); }}
+                  onChange={e => { productPriceEdits.current[p.id] = e.target.value; }}
                   style={{ width: 90, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.accentGold, borderRadius: 8, padding: "6px 10px", fontSize: 14, fontWeight: 800, textAlign: "center" }}
                 />
               </td>
               <td style={{ padding: "10px 14px", textAlign: "center" }}>
                 <button
-                  onClick={() => show(`✅ تم تحديث سعر ${p.name}`)}
+                  onClick={() => saveProductPrice(p)}
                   style={{ padding: "7px 14px", background: COLORS.accent, border: "none", color: "#000", borderRadius: 8, fontWeight: 800, fontSize: 12, cursor: "pointer" }}>
                   💾
                 </button>
@@ -358,10 +343,6 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
       </table>
     </div>
   </div>
-)}
-      {/* اللاعبون */}
-{adminTab === "players" && (
-  <PlayersManager users={users} setUsers={setUsers} user={user} />
 )}
       {/* التقارير */}
       {adminTab === "reports" && (
@@ -422,7 +403,7 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
             <Field label="رقم الجوال" value={form.phone || ""} onChange={v => setForm(p => ({ ...p, phone: v }))} />
             {form.role === "لاعب" && <>
               <Field label="المركز" value={form.position || "-"} onChange={v => setForm(p => ({ ...p, position: v }))} options={["مهاجم", "وسط", "دفاع", "حارس", "-"]} />
-              <Field label="العضوية" value={form.membership || "فضي"} onChange={v => setForm(p => ({ ...p, membership: v }))} options={["برونزي", "فضي", "ذهبي", "ماسي"]} />
+              <Field label="العضوية" value={form.membership || "فضية"} onChange={v => setForm(p => ({ ...p, membership: v }))} options={["فضية", "ذهبية", "ماسية"]} />
               <Field label="المدرب المسؤول (ID)" value={form.coachId || ""} onChange={v => setForm(p => ({ ...p, coachId: v }))} placeholder="رقم هوية المدرب" />
             </>}
             {form.role === "ولي أمر" && (

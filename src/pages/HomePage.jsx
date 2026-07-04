@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { COLORS } from "../constants/colors";
-import { memberships } from "../constants/data";
+import { BRAND_NAME, BRAND_TAGLINE } from "../constants/brand";
 import { useWindowSize } from "../hooks/useWindowSize";
 import { StatCard, Avatar, Badge } from "../components/ui";
+import { Logo } from "../components/Logo";
 
 export function HomePage({ onNav, user, users, directorMsg, setDirectorMsg }) {
   const [visible, setVisible] = useState(false);
@@ -25,10 +26,10 @@ export function HomePage({ onNav, user, users, directorMsg, setDirectorMsg }) {
         <div style={{ display: "flex", gap: 24, flexDirection: isDesktop ? "row" : "column", alignItems: isDesktop ? "center" : "flex-start" }}>
           <div style={{ flex: 1 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 18 }}>
-              <div style={{ width: isDesktop ? 64 : 54, height: isDesktop ? 64 : 54, background: "linear-gradient(135deg,#00c896,#0066cc)", borderRadius: 18, display: "flex", alignItems: "center", justifyContent: "center", fontSize: isDesktop ? 30 : 26, boxShadow: "0 0 30px #00c89644", opacity: visible ? 1 : 0, transition: "all 0.6s ease" }}>⚽</div>
+              <div style={{ opacity: visible ? 1 : 0, transition: "all 0.6s ease" }}><Logo size={isDesktop ? 64 : 54} /></div>
               <div>
-                <div style={{ fontSize: isDesktop ? 26 : 20, fontWeight: 900, color: COLORS.textPrimary }}>أكاديمية النجوم</div>
-                <div style={{ fontSize: 11, color: COLORS.accent, letterSpacing: 2, marginTop: 2 }}>ACADEMY OF STARS</div>
+                <div style={{ fontSize: isDesktop ? 26 : 20, fontWeight: 900, color: COLORS.textPrimary }}>{BRAND_NAME}</div>
+                <div style={{ fontSize: 11, color: COLORS.accent, letterSpacing: 2, marginTop: 2 }}>{BRAND_TAGLINE}</div>
               </div>
             </div>
             {/* بطاقة المستخدم */}
@@ -73,20 +74,9 @@ export function HomePage({ onNav, user, users, directorMsg, setDirectorMsg }) {
           <StatCard label="ولي أمر" value={String(users.filter(u => u.role === "ولي أمر").length)} icon="👨‍👦" color={COLORS.purple} sub="مسجل" />
         </div>
 
-        {/* العضويات */}
-        <div style={{ fontSize: isDesktop ? 19 : 16, fontWeight: 800, color: COLORS.textPrimary, marginBottom: 4 }}>العضويات</div>
-        <div style={{ fontSize: 13, color: COLORS.textSecondary, marginBottom: 12 }}>اختر الباقة المناسبة</div>
-        <div style={{ display: isDesktop ? "grid" : "flex", gridTemplateColumns: isDesktop ? "repeat(4,1fr)" : undefined, gap: 12, overflowX: isDesktop ? "visible" : "auto", paddingBottom: 8 }}>
-          {memberships.map((m, i) => (
-            <div key={i} style={{ minWidth: isDesktop ? "unset" : 182, borderRadius: 18, background: m.bg, border: `1px solid ${m.color}44`, padding: "16px 14px", position: "relative", flexShrink: 0 }}>
-              {m.popular && <div style={{ position: "absolute", top: -10, right: 12, background: m.color, color: "#000", fontSize: 9, fontWeight: 800, padding: "3px 10px", borderRadius: 20 }}>الأكثر طلباً</div>}
-              <div style={{ fontSize: 24, marginBottom: 6 }}>{m.icon}</div>
-              <div style={{ color: m.color, fontWeight: 800, fontSize: 14 }}>{m.name}</div>
-              <div style={{ color: COLORS.textPrimary, fontSize: 19, fontWeight: 900, margin: "5px 0" }}>{m.price} <span style={{ fontSize: 10, color: COLORS.textSecondary }}>ر.س/شهر</span></div>
-              {m.features.map((f, j) => <div key={j} style={{ fontSize: 10, color: COLORS.textSecondary, marginTop: 4, display: "flex", gap: 4 }}><span style={{ color: m.color }}>✓</span>{f}</div>)}
-              <button onClick={() => onNav("subscriptions")} style={{ marginTop: 12, width: "100%", padding: "8px", background: `${m.color}22`, border: `1px solid ${m.color}55`, color: m.color, borderRadius: 9, fontWeight: 700, fontSize: 11, cursor: "pointer" }}>اشترك</button>
-            </div>
-          ))}
+        <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
+          <button onClick={() => onNav("subscriptions")} style={{ padding: "12px 20px", background: `${COLORS.accent}18`, border: `1px solid ${COLORS.accent}44`, color: COLORS.accent, borderRadius: 12, fontWeight: 800, fontSize: 13, cursor: "pointer" }}>💳 الاشتراكات</button>
+          <button onClick={() => onNav("memberships")} style={{ padding: "12px 20px", background: `${COLORS.accentGold}18`, border: `1px solid ${COLORS.accentGold}44`, color: COLORS.accentGold, borderRadius: 12, fontWeight: 800, fontSize: 13, cursor: "pointer" }}>💎 العضويات</button>
         </div>
       </div>
     </div>

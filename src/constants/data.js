@@ -14,15 +14,6 @@ export const PRODUCT_SIZES = ["34", "36", "38", "M", "L", "XL", "XXL"];
 
 export const PLAYER_CATEGORIES = ["براعم", "أشبال", "ناشئين", "شباب"];
 
-export const financialData = [
-  { month: "يناير",  revenue: 48000, expenses: 22000 },
-  { month: "فبراير", revenue: 52000, expenses: 24000 },
-  { month: "مارس",   revenue: 61000, expenses: 25000 },
-  { month: "أبريل",  revenue: 58000, expenses: 23000 },
-  { month: "مايو",   revenue: 67000, expenses: 26000 },
-  { month: "يونيو",  revenue: 72000, expenses: 28000 },
-];
-
 export const PERMISSION_LABELS = {
   editSchedule:      "تعديل الحضور والانصراف",
   editData:          "تعديل بيانات اللاعبين",
@@ -37,12 +28,13 @@ export const ROLE_TABS = {
   "مدير":    ["home","players","subscriptions","memberships","store","notifications","library","about","admin"],
   "مدرب":    ["home","players","notifications","library","about"],
   "لاعب":    ["home","subscriptions","memberships","store","notifications","library","about"],
-  "ولي أمر": ["home","subscriptions","memberships","store","notifications","library","about"],
+  "ولي أمر": ["home","mychild","subscriptions","memberships","store","notifications","library","about"],
 };
 
 export const ALL_TABS = [
   { id: "home",          icon: "🏠", label: "الرئيسية" },
   { id: "players",       icon: "📋", label: "تسجيل اللاعبين" },
+  { id: "mychild",       icon: "👨‍👦", label: "ملف ولدي" },
   { id: "subscriptions", icon: "💳", label: "الاشتراكات" },
   { id: "memberships",   icon: "💎", label: "العضويات" },
   { id: "store",         icon: "🛒", label: "المتجر" },

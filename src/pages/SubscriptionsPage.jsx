@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { supabase } from "../lib/supabase";
+import { validateDiscountCode, consumeDiscountCode } from "../lib/discounts";
 import { COLORS } from "../constants/colors";
 import { SUBSCRIPTION_PLANS } from "../constants/data";
 import { useWindowSize } from "../hooks/useWindowSize";
@@ -12,7 +13,7 @@ function addMonths(dateStr, months) {
   return d.toISOString().slice(0, 10);
 }
 
-export function SubscriptionsPage({ user, setUsers }) {
+export function SubscriptionsPage({ user, setUsers, plans = SUBSCRIPTION_PLANS }) {
   const [selected, setSelected] = useState(null);
   const [code, setCode] = useState("");
   const [discount, setDiscount] = useState(null);
@@ -22,29 +23,42 @@ export function SubscriptionsPage({ user, setUsers }) {
   const { isDesktop } = useWindowSize();
   const { toast, show } = useToast();
 
-  const plan = selected !== null ? SUBSCRIPTION_PLANS[selected] : null;
+  const plan = selected !== null ? plans[selected] : null;
   const finalPrice = plan ? Math.round(plan.price * (1 - (discount || 0) / 100)) : 0;
 
   const applyCode = async () => {
     if (!code.trim()) return;
     setChecking(true);
-    const { data } = await supabase.from('discount_codes').select('*').eq('code', code.trim().toUpperCase()).eq('active', true).maybeSingle();
+    const result = await validateDiscountCode(code);
     setChecking(false);
-    if (data) { setDiscount(Number(data.percent_off)); show(`✅ تم تطبيق خصم ${data.percent_off}٪`); }
-    else { setDiscount(null); show("⚠️ كود الخصم غير صحيح", COLORS.warning); }
+    if (result.error) { setDiscount(null); show(`⚠️ ${result.error}`, COLORS.warning); return; }
+    setDiscount(result.percent);
+    show(`✅ تم تطبيق خصم ${result.percent}٪`);
   };
 
   const subscribe = async () => {
     if (!plan || submitting) return;
     setSubmitting(true);
+    const usedCode = discount ? code.trim().toUpperCase() : null;
+    // إعادة التحقق لحظة الدفع — قد يكون الكود انتهى استخدامه بين التطبيق والدفع
+    if (usedCode) {
+      const recheck = await validateDiscountCode(usedCode);
+      if (recheck.error) {
+        setDiscount(null);
+        show(`⚠️ ${recheck.error}`, COLORS.warning);
+        setSubmitting(false);
+        return;
+      }
+    }
     const today = new Date().toISOString().slice(0, 10);
     const endDate = addMonths(today, plan.months);
 
     await supabase.from('subscription_payments').insert({
       user_id: user.id, plan_label: plan.label, months: plan.months,
-      amount: finalPrice, discount_code: discount ? code.trim().toUpperCase() : null,
+      amount: finalPrice, discount_code: usedCode,
     });
     await supabase.from('users').update({ subscription_start: today, subscription_end: endDate, status: "نشط" }).eq('id', user.id);
+    await consumeDiscountCode(usedCode);
     setUsers(prev => prev.map(u => u.id === user.id ? { ...u, subscription_start: today, subscription_end: endDate, status: "نشط" } : u));
     setSubmitting(false);
     setDone(true);
@@ -67,7 +81,7 @@ export function SubscriptionsPage({ user, setUsers }) {
       <div style={{ fontSize: 13, color: COLORS.textSecondary, marginBottom: 20 }}>اختر مدة الاشتراك المناسبة</div>
 
       <div style={{ display: isDesktop ? "grid" : "flex", gridTemplateColumns: "repeat(3,1fr)", flexDirection: "column", gap: 12, marginBottom: 20, maxWidth: 760 }}>
-        {SUBSCRIPTION_PLANS.map((p, i) => (
+        {plans.map((p, i) => (
           <div key={p.id} onClick={() => setSelected(i)} style={{ background: COLORS.cardBg, border: `2px solid ${selected === i ? COLORS.accent : COLORS.border}`, borderRadius: 16, padding: "20px", cursor: "pointer", textAlign: "center", boxShadow: selected === i ? `0 0 20px ${COLORS.accent}33` : "none" }}>
             <div style={{ fontSize: 14, fontWeight: 800, color: COLORS.textPrimary, marginBottom: 8 }}>{p.label}</div>
             <div style={{ fontSize: 26, fontWeight: 900, color: COLORS.accent }}>{p.price} <span style={{ fontSize: 12, color: COLORS.textSecondary, fontWeight: 400 }}>ر.س</span></div>

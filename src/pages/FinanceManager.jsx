@@ -5,6 +5,25 @@ import { useWindowSize } from "../hooks/useWindowSize";
 import { useToast } from "../hooks/useToast";
 import { Badge, Modal, Field, ToastMsg } from "../components/ui";
 
+const MONTH_NAMES = ["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"];
+const AR_DIGITS = { "٠":"0","١":"1","٢":"2","٣":"3","٤":"4","٥":"5","٦":"6","٧":"7","٨":"8","٩":"9" };
+const normalizeDigits = (s) => String(s || "").replace(/[٠-٩]/g, d => AR_DIGITS[d]);
+
+// يجمع السجلات شهريًا انطلاقًا من حقل التاريخ النصي (يقبل أرقام عربية وصيغ سنة/شهر/يوم)
+function groupByMonth(records) {
+  const byMonth = {};
+  records.forEach(r => {
+    const parts = normalizeDigits(r.date).split(/[/-]/);
+    const monthIdx = parts.length >= 2 ? Number(parts[1]) - 1 : NaN;
+    if (Number.isNaN(monthIdx) || monthIdx < 0 || monthIdx > 11) return;
+    const key = MONTH_NAMES[monthIdx];
+    byMonth[key] = byMonth[key] || { month: key, revenue: 0, expenses: 0 };
+    if (r.type === "revenue") byMonth[key].revenue += Number(r.amount);
+    else byMonth[key].expenses += Number(r.amount);
+  });
+  return MONTH_NAMES.map(m => byMonth[m]).filter(Boolean);
+}
+
 export function FinanceManager({ user }) {
   const [records, setRecords]         = useState([]);
   const [loading, setLoading]         = useState(true);
@@ -50,6 +69,8 @@ export function FinanceManager({ user }) {
   const netProfit    = totalRevenue - totalExpense;
   const filtered     = filter === "all" ? records : records.filter(r => r.type === filter);
   const formatNum    = (n) => n.toLocaleString("ar-SA");
+  const monthly      = groupByMonth(records);
+  const chartMax     = Math.max(1, ...monthly.flatMap(m => [m.revenue, m.expenses]));
 
   if (loading) return (
     <div style={{ textAlign: "center", padding: "40px", color: COLORS.textSecondary }}>
@@ -83,6 +104,34 @@ export function FinanceManager({ user }) {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* الرسم البياني الشهري — من السجلات الفعلية */}
+      <div style={{ background: COLORS.cardBg, border: `1px solid ${COLORS.border}`, borderRadius: 16, padding: 22, marginBottom: 22 }}>
+        <div style={{ fontSize: 15, fontWeight: 800, color: COLORS.textPrimary, marginBottom: 18 }}>📈 الإيرادات مقابل المصروفات (شهريًا)</div>
+        {monthly.length === 0 ? (
+          <div style={{ textAlign: "center", padding: "26px 0", color: COLORS.textSecondary, fontSize: 13 }}>
+            لا توجد سجلات بتواريخ صالحة بعد — أضف سجلات مالية بصيغة تاريخ مثل ٢٠٢٦/٧/١
+          </div>
+        ) : (
+          <>
+            <div style={{ display: "flex", gap: 6, alignItems: "flex-end", height: 160 }}>
+              {monthly.map((d, i) => (
+                <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
+                  <div style={{ display: "flex", gap: 2, alignItems: "flex-end", height: 125, width: "100%", justifyContent: "center" }}>
+                    <div title={`إيرادات: ${formatNum(d.revenue)}`} style={{ width: "38%", maxWidth: 26, background: COLORS.accent, height: `${(d.revenue / chartMax) * 100}%`, borderRadius: "4px 4px 0 0", minHeight: 4 }} />
+                    <div title={`مصروفات: ${formatNum(d.expenses)}`} style={{ width: "38%", maxWidth: 26, background: COLORS.danger + "88", height: `${(d.expenses / chartMax) * 100}%`, borderRadius: "4px 4px 0 0", minHeight: 4 }} />
+                  </div>
+                  <div style={{ fontSize: 10, color: COLORS.textSecondary }}>{d.month}</div>
+                </div>
+              ))}
+            </div>
+            <div style={{ display: "flex", gap: 18, marginTop: 12 }}>
+              <div style={{ display: "flex", alignItems: "center", gap: 5 }}><div style={{ width: 10, height: 10, background: COLORS.accent, borderRadius: 2 }} /><span style={{ fontSize: 11, color: COLORS.textSecondary }}>إيرادات</span></div>
+              <div style={{ display: "flex", alignItems: "center", gap: 5 }}><div style={{ width: 10, height: 10, background: COLORS.danger + "88", borderRadius: 2 }} /><span style={{ fontSize: 11, color: COLORS.textSecondary }}>مصروفات</span></div>
+            </div>
+          </>
+        )}
       </div>
 
       {/* شريط الأدوات */}

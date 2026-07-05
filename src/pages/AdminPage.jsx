@@ -1,7 +1,7 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { supabase } from "../lib/supabase";
 import { COLORS } from "../constants/colors";
-import { financialData, PERMISSION_LABELS } from "../constants/data";
+import { PERMISSION_LABELS } from "../constants/data";
 import { useWindowSize } from "../hooks/useWindowSize";
 import { useToast } from "../hooks/useToast";
 import { StatCard, Avatar, Badge, MiniBar, Modal, Field, ToastMsg } from "../components/ui";
@@ -10,8 +10,26 @@ import { AttendanceManager } from "./AttendanceManager";
 import { EvaluationManager } from "./EvaluationManager";
 import { NotesManager } from "./NotesManager";
 
-export function AdminPage({ user, users, setUsers, products, setProducts, loadData }) {
-  const [adminTab, setAdminTab] = useState("overview");
+const EMPTY_PRODUCT = { name: "", price: "", category: "ملابس", img: "👕" };
+const EMPTY_CODE = { code: "", percent: "", maxUses: "" };
+
+export function AdminPage({ user, users, setUsers, products, setProducts, loadData, subscriptionPlans, saveSubscriptionPlans }) {
+  const isAdmin = user.role === "مدير";
+  const can = (perm) => isAdmin || !!user.permissions?.[perm];
+
+  const TABS = [
+    { id: "overview",    label: "📊 لوحة التحكم",        show: isAdmin },
+    { id: "accounts",    label: "👥 الحسابات",           show: isAdmin },
+    { id: "permissions", label: "🔑 الصلاحيات",          show: isAdmin },
+    { id: "attendance",  label: "🕒 الحضور والانصراف",   show: can("editSchedule") },
+    { id: "evaluation",  label: "⭐ التقييم",             show: can("editRatings") },
+    { id: "notes",       label: "📝 الملاحظات",          show: can("editData") },
+    { id: "finance",     label: "💰 المالية",            show: isAdmin },
+    { id: "reports",     label: "📈 التقارير",           show: isAdmin },
+    { id: "pricing",     label: "💲 الأسعار",            show: can("editCommerce") },
+  ].filter(t => t.show);
+
+  const [adminTab, setAdminTab] = useState(TABS[0]?.id || "overview");
   const [modal, setModal] = useState(null);
   const [form, setForm] = useState({});
   const [editId, setEditId] = useState(null);
@@ -19,16 +37,85 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
   const [search, setSearch] = useState("");
   const [filterRole, setFilterRole] = useState("الكل");
   const [permTarget, setPermTarget] = useState(null);
+  const [productModal, setProductModal] = useState(false);
+  const [newProduct, setNewProduct] = useState(EMPTY_PRODUCT);
+  const [codes, setCodes] = useState([]);
+  const [newCode, setNewCode] = useState(EMPTY_CODE);
   const productPriceEdits = useRef({});
+  const planPriceEdits = useRef({});
   const { isDesktop } = useWindowSize();
   const { toast, show } = useToast();
 
+  // ── أكواد الخصم ──
+  const loadCodes = useCallback(async () => {
+    const { data } = await supabase.from('discount_codes').select('*').order('code');
+    setCodes(data || []);
+  }, []);
+
+  useEffect(() => { if (adminTab === "pricing") loadCodes(); }, [adminTab, loadCodes]);
+
+  const createCode = async () => {
+    const code = newCode.code.trim().toUpperCase();
+    const percent = Number(newCode.percent);
+    if (!code || !percent || percent <= 0 || percent > 100) {
+      show("⚠️ أدخل كودًا ونسبة خصم صحيحة (١-١٠٠)", COLORS.warning); return;
+    }
+    const { error } = await supabase.from('discount_codes').upsert({
+      code, percent_off: percent, active: true,
+      max_uses: newCode.maxUses ? Number(newCode.maxUses) : null,
+      used_count: 0,
+    });
+    if (error) { show(`⚠️ ${error.message}`, COLORS.danger); return; }
+    setNewCode(EMPTY_CODE);
+    show(`✅ تم إنشاء الكود ${code}`);
+    loadCodes();
+  };
+
+  const toggleCode = async (c) => {
+    await supabase.from('discount_codes').update({ active: !c.active }).eq('code', c.code);
+    loadCodes();
+  };
+
+  const deleteCode = async (c) => {
+    await supabase.from('discount_codes').delete().eq('code', c.code);
+    show("🗑️ تم حذف الكود", COLORS.danger);
+    loadCodes();
+  };
+
+  // ── المنتجات ──
   const saveProductPrice = async (p) => {
     const price = productPriceEdits.current[p.id] ?? p.price;
     const { error } = await supabase.from('products').update({ price: Number(price) }).eq('id', p.id);
     if (error) { show(`⚠️ خطأ: ${error.message}`, COLORS.danger); return; }
     setProducts(prev => prev.map(x => x.id === p.id ? { ...x, price: Number(price) } : x));
     show(`✅ تم تحديث سعر ${p.name}`);
+  };
+
+  const addProduct = async () => {
+    if (!newProduct.name.trim() || !newProduct.price) { show("⚠️ أدخل اسم المنتج والسعر", COLORS.warning); return; }
+    const { data, error } = await supabase.from('products').insert({
+      name: newProduct.name, price: Number(newProduct.price),
+      category: newProduct.category, img: newProduct.img || "🛍️", images: [],
+    }).select().single();
+    if (error) { show(`⚠️ ${error.message}`, COLORS.danger); return; }
+    setProducts(prev => [...prev, { ...data, images: data.images || [] }]);
+    setNewProduct(EMPTY_PRODUCT);
+    setProductModal(false);
+    show("✅ تم إضافة المنتج");
+  };
+
+  const deleteProduct = async (p) => {
+    await supabase.from('products').delete().eq('id', p.id);
+    setProducts(prev => prev.filter(x => x.id !== p.id));
+    show("🗑️ تم حذف المنتج", COLORS.danger);
+  };
+
+  // ── أسعار الاشتراكات ──
+  const savePlanPrice = (idx) => {
+    const price = Number(planPriceEdits.current[idx] ?? subscriptionPlans[idx].price);
+    const updated = subscriptionPlans.map((p, i) => i === idx ? { ...p, price } : p);
+    saveSubscriptionPlans(updated);
+    show(`✅ تم تحديث سعر ${subscriptionPlans[idx].label}`);
   };
 
   const EMPTY_FORM = {
@@ -129,19 +216,9 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
         </div>
       </div>
 
-      {/* تبويبات */}
+      {/* تبويبات — تظهر حسب الصلاحيات */}
       <div style={{ display: "flex", gap: 8, overflowX: "auto", marginBottom: 20, paddingBottom: 2 }}>
-        {[
-          { id: "overview",     label: "📊 لوحة التحكم" },
-          { id: "accounts",     label: "👥 الحسابات" },
-          { id: "permissions",  label: "🔑 الصلاحيات" },
-          { id: "attendance",   label: "🕒 الحضور والانصراف" },
-          { id: "evaluation",   label: "⭐ التقييم" },
-          { id: "notes",        label: "📝 الملاحظات" },
-          { id: "finance",      label: "💰 المالية" },
-          { id: "reports",      label: "📈 التقارير" },
-          { id: "pricing",      label: "💲 الأسعار" },
-        ].map(t => (
+        {TABS.map(t => (
           <button key={t.id} onClick={() => setAdminTab(t.id)} style={{ padding: "9px 16px", borderRadius: 20, whiteSpace: "nowrap", flexShrink: 0, background: adminTab === t.id ? COLORS.purple : COLORS.cardBg, border: `1px solid ${adminTab === t.id ? COLORS.purple : COLORS.border}`, color: adminTab === t.id ? "#fff" : COLORS.textSecondary, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>{t.label}</button>
         ))}
       </div>
@@ -159,26 +236,6 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
           </div>
 
           <div style={{ display: "block", gap: 20 }}>
-            {/* رسم بياني */}
-            <div style={{ background: COLORS.cardBg, border: `1px solid ${COLORS.border}`, borderRadius: 16, padding: 22, marginBottom: isDesktop ? 0 : 16 }}>
-              <div style={{ fontSize: 15, fontWeight: 800, color: COLORS.textPrimary, marginBottom: 18 }}>📈 الإيرادات مقابل المصروفات</div>
-              <div style={{ display: "flex", gap: 5, alignItems: "flex-end", height: 150 }}>
-                {financialData.map((d, i) => (
-                  <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4 }}>
-                    <div style={{ display: "flex", gap: 2, alignItems: "flex-end", height: 120 }}>
-                      <div style={{ width: "45%", background: COLORS.accent, height: `${(d.revenue/80000)*100}%`, borderRadius: "4px 4px 0 0", minHeight: 4 }} />
-                      <div style={{ width: "45%", background: COLORS.danger+"88", height: `${(d.expenses/80000)*100}%`, borderRadius: "4px 4px 0 0", minHeight: 4 }} />
-                    </div>
-                    <div style={{ fontSize: 9, color: COLORS.textSecondary }}>{d.month.slice(0,3)}</div>
-                  </div>
-                ))}
-              </div>
-              <div style={{ display: "flex", gap: 18, marginTop: 10 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: 5 }}><div style={{ width: 10, height: 10, background: COLORS.accent, borderRadius: 2 }} /><span style={{ fontSize: 11, color: COLORS.textSecondary }}>إيرادات</span></div>
-                <div style={{ display: "flex", alignItems: "center", gap: 5 }}><div style={{ width: 10, height: 10, background: COLORS.danger+"88", borderRadius: 2 }} /><span style={{ fontSize: 11, color: COLORS.textSecondary }}>مصروفات</span></div>
-              </div>
-            </div>
-
             {/* توزيع */}
             <div style={{ background: COLORS.cardBg, border: `1px solid ${COLORS.border}`, borderRadius: 16, padding: 22 }}>
               <div style={{ fontSize: 15, fontWeight: 800, color: COLORS.textPrimary, marginBottom: 16 }}>توزيع الحسابات</div>
@@ -298,14 +355,36 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
 {/* الأسعار */}
 {adminTab === "pricing" && (
   <div>
+    {/* أسعار الاشتراكات */}
     <div style={{ fontSize: 16, fontWeight: 800, color: COLORS.textPrimary, marginBottom: 14 }}>
-      🛒 أسعار منتجات المتجر
+      💳 أسعار الاشتراكات
     </div>
-    <div style={{ background: COLORS.cardBg, border: `1px solid ${COLORS.border}`, borderRadius: 16, overflow: "hidden" }}>
+    <div style={{ display: isDesktop ? "grid" : "block", gridTemplateColumns: "repeat(3,1fr)", gap: 12, marginBottom: 28 }}>
+      {subscriptionPlans.map((p, i) => (
+        <div key={p.id} style={{ background: COLORS.cardBg, border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: "16px", marginBottom: isDesktop ? 0 : 10 }}>
+          <div style={{ fontSize: 14, fontWeight: 800, color: COLORS.textPrimary, marginBottom: 10 }}>{p.label}</div>
+          <div style={{ fontSize: 11, color: COLORS.textSecondary, marginBottom: 5 }}>السعر (ر.س)</div>
+          <input
+            type="number"
+            defaultValue={p.price}
+            onChange={e => { planPriceEdits.current[i] = e.target.value; }}
+            style={{ width: "100%", background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.accent, borderRadius: 10, padding: "10px 12px", fontSize: 18, fontWeight: 900, boxSizing: "border-box", marginBottom: 10 }}
+          />
+          <button onClick={() => savePlanPrice(i)} style={{ width: "100%", padding: "9px", background: COLORS.accent, border: "none", color: "#000", borderRadius: 10, fontWeight: 800, fontSize: 12, cursor: "pointer" }}>💾 حفظ</button>
+        </div>
+      ))}
+    </div>
+
+    {/* المنتجات */}
+    <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
+      <div style={{ fontSize: 16, fontWeight: 800, color: COLORS.textPrimary }}>🛒 منتجات المتجر</div>
+      <button onClick={() => { setNewProduct(EMPTY_PRODUCT); setProductModal(true); }} style={{ padding: "8px 16px", background: COLORS.accent, border: "none", color: "#000", borderRadius: 10, fontWeight: 800, fontSize: 12, cursor: "pointer" }}>+ منتج جديد</button>
+    </div>
+    <div style={{ background: COLORS.cardBg, border: `1px solid ${COLORS.border}`, borderRadius: 16, overflow: "hidden", marginBottom: 28 }}>
       <table style={{ width: "100%", borderCollapse: "collapse" }}>
         <thead>
           <tr style={{ background: COLORS.surface }}>
-            {["المنتج", "التصنيف", "السعر (ر.س)", "حفظ"].map((h, i) => (
+            {["المنتج", "التصنيف", "السعر (ر.س)", "إجراء"].map((h, i) => (
               <th key={i} style={{ padding: "12px 14px", fontSize: 12, color: COLORS.textSecondary, fontWeight: 700, textAlign: "center", borderBottom: `1px solid ${COLORS.border}` }}>{h}</th>
             ))}
           </tr>
@@ -331,17 +410,80 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
                 />
               </td>
               <td style={{ padding: "10px 14px", textAlign: "center" }}>
-                <button
-                  onClick={() => saveProductPrice(p)}
-                  style={{ padding: "7px 14px", background: COLORS.accent, border: "none", color: "#000", borderRadius: 8, fontWeight: 800, fontSize: 12, cursor: "pointer" }}>
-                  💾
-                </button>
+                <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
+                  <button onClick={() => saveProductPrice(p)} style={{ padding: "7px 14px", background: COLORS.accent, border: "none", color: "#000", borderRadius: 8, fontWeight: 800, fontSize: 12, cursor: "pointer" }}>💾</button>
+                  <button onClick={() => deleteProduct(p)} style={{ padding: "7px 14px", background: COLORS.danger + "22", border: `1px solid ${COLORS.danger}44`, color: COLORS.danger, borderRadius: 8, fontWeight: 800, fontSize: 12, cursor: "pointer" }}>🗑️</button>
+                </div>
               </td>
             </tr>
           ))}
+          {products.length === 0 && (
+            <tr><td colSpan={4} style={{ padding: "26px", textAlign: "center", color: COLORS.textSecondary, fontSize: 13 }}>لا توجد منتجات — أضف أول منتج</td></tr>
+          )}
         </tbody>
       </table>
     </div>
+
+    {/* أكواد الخصم */}
+    <div style={{ fontSize: 16, fontWeight: 800, color: COLORS.textPrimary, marginBottom: 14 }}>🎟️ أكواد الخصم</div>
+    <div style={{ display: isDesktop ? "grid" : "block", gridTemplateColumns: "320px 1fr", gap: 16 }}>
+      <div style={{ background: COLORS.cardBg, border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: 16, marginBottom: isDesktop ? 0 : 12, alignSelf: "start" }}>
+        <div style={{ fontSize: 13, fontWeight: 800, color: COLORS.textPrimary, marginBottom: 12 }}>➕ إنشاء كود جديد</div>
+        <Field label="الكود" value={newCode.code} onChange={v => setNewCode(p => ({ ...p, code: v }))} placeholder="مثال: SUMMER20" />
+        <Field label="نسبة الخصم ٪" value={newCode.percent} onChange={v => setNewCode(p => ({ ...p, percent: v }))} type="number" placeholder="20" />
+        <Field label="عدد الاستخدامات (اتركه فارغًا = بلا حد)" value={newCode.maxUses} onChange={v => setNewCode(p => ({ ...p, maxUses: v }))} type="number" placeholder="مثال: 50" />
+        <button onClick={createCode} style={{ width: "100%", padding: "11px", background: COLORS.accent, border: "none", color: "#000", borderRadius: 10, fontWeight: 800, cursor: "pointer" }}>✅ إنشاء الكود</button>
+      </div>
+      <div style={{ background: COLORS.cardBg, border: `1px solid ${COLORS.border}`, borderRadius: 14, overflow: "hidden" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <thead>
+            <tr style={{ background: COLORS.surface }}>
+              {["الكود", "الخصم", "الاستخدام", "الحالة", "إجراء"].map((h, i) => (
+                <th key={i} style={{ padding: "10px", fontSize: 11, color: COLORS.textSecondary, fontWeight: 700, textAlign: "center", borderBottom: `1px solid ${COLORS.border}` }}>{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {codes.map(c => {
+              const exhausted = c.max_uses != null && (c.used_count || 0) >= c.max_uses;
+              return (
+                <tr key={c.code} style={{ borderBottom: `1px solid ${COLORS.border}` }}>
+                  <td style={{ padding: "10px", textAlign: "center", fontSize: 13, fontWeight: 800, color: COLORS.textPrimary }}>{c.code}</td>
+                  <td style={{ padding: "10px", textAlign: "center", fontSize: 13, color: COLORS.accent, fontWeight: 700 }}>{c.percent_off}٪</td>
+                  <td style={{ padding: "10px", textAlign: "center", fontSize: 12, color: COLORS.textSecondary }}>{c.used_count || 0}{c.max_uses != null ? ` / ${c.max_uses}` : " (بلا حد)"}</td>
+                  <td style={{ padding: "10px", textAlign: "center" }}>
+                    <Badge text={exhausted ? "منتهي" : c.active ? "مفعّل" : "موقوف"} color={exhausted ? COLORS.textSecondary : c.active ? COLORS.accent : COLORS.danger} />
+                  </td>
+                  <td style={{ padding: "10px", textAlign: "center" }}>
+                    <div style={{ display: "flex", gap: 4, justifyContent: "center" }}>
+                      <button onClick={() => toggleCode(c)} style={{ padding: "5px 10px", background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.textSecondary, borderRadius: 7, fontSize: 11, fontWeight: 700, cursor: "pointer" }}>{c.active ? "إيقاف" : "تفعيل"}</button>
+                      <button onClick={() => deleteCode(c)} style={{ padding: "5px 10px", background: COLORS.danger + "22", border: `1px solid ${COLORS.danger}44`, color: COLORS.danger, borderRadius: 7, fontSize: 11, cursor: "pointer" }}>🗑️</button>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+            {codes.length === 0 && (
+              <tr><td colSpan={5} style={{ padding: "26px", textAlign: "center", color: COLORS.textSecondary, fontSize: 13 }}>لا توجد أكواد بعد</td></tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    {/* Modal منتج جديد */}
+    {productModal && (
+      <Modal title="➕ منتج جديد" onClose={() => setProductModal(false)}>
+        <Field label="اسم المنتج *" value={newProduct.name} onChange={v => setNewProduct(p => ({ ...p, name: v }))} placeholder="مثال: طقم الأكاديمية" />
+        <Field label="السعر (ر.س) *" value={newProduct.price} onChange={v => setNewProduct(p => ({ ...p, price: v }))} type="number" />
+        <Field label="التصنيف" value={newProduct.category} onChange={v => setNewProduct(p => ({ ...p, category: v }))} options={["ملابس", "إكسسوار", "حقائب", "معدات"]} />
+        <Field label="الرمز التعبيري" value={newProduct.img} onChange={v => setNewProduct(p => ({ ...p, img: v }))} placeholder="👕" />
+        <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
+          <button onClick={() => setProductModal(false)} style={{ flex: 1, padding: "12px", borderRadius: 11, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.textSecondary, fontWeight: 700, cursor: "pointer" }}>إلغاء</button>
+          <button onClick={addProduct} style={{ flex: 2, padding: "12px", borderRadius: 11, background: COLORS.accent, border: "none", color: "#000", fontWeight: 800, cursor: "pointer" }}>✅ إضافة</button>
+        </div>
+      </Modal>
+    )}
   </div>
 )}
       {/* التقارير */}

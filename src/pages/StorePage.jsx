@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { supabase } from "../lib/supabase";
+import { validateDiscountCode, consumeDiscountCode } from "../lib/discounts";
 import { COLORS } from "../constants/colors";
 import { PRODUCT_SIZES } from "../constants/data";
 import { useWindowSize } from "../hooks/useWindowSize";
@@ -30,19 +31,31 @@ export function StorePage({ products = [], setProducts, user }) {
 
   const applyCode = async () => {
     if (!code.trim()) return;
-    const { data } = await supabase.from('discount_codes').select('*').eq('code', code.trim().toUpperCase()).eq('active', true).maybeSingle();
-    if (data) { setDiscount(Number(data.percent_off)); show(`✅ تم تطبيق خصم ${data.percent_off}٪`); }
-    else { setDiscount(null); show("⚠️ كود الخصم غير صحيح", COLORS.warning); }
+    const result = await validateDiscountCode(code);
+    if (result.error) { setDiscount(null); show(`⚠️ ${result.error}`, COLORS.warning); return; }
+    setDiscount(result.percent);
+    show(`✅ تم تطبيق خصم ${result.percent}٪`);
   };
 
   const checkout = async () => {
     if (cart.length === 0 || checkingOut) return;
     setCheckingOut(true);
     const discountCode = discount ? code.trim().toUpperCase() : null;
+    // إعادة التحقق لحظة الشراء — قد يكون الكود انتهى استخدامه بعد تطبيقه
+    if (discountCode) {
+      const recheck = await validateDiscountCode(discountCode);
+      if (recheck.error) {
+        setDiscount(null);
+        show(`⚠️ ${recheck.error}`, COLORS.warning);
+        setCheckingOut(false);
+        return;
+      }
+    }
     const { error } = await supabase.from('store_orders').insert(
       cart.map(item => ({ user_id: user.id, product_name: item.name, size: item.size, amount: item.price, discount_code: discountCode }))
     );
     if (error) { show(`⚠️ تعذّر إتمام الشراء: ${error.message}`, COLORS.danger); setCheckingOut(false); return; }
+    await consumeDiscountCode(discountCode);
     setCart([]);
     setCode(""); setDiscount(null);
     setShowCart(false);

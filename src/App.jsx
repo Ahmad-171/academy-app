@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import { supabase } from "./lib/supabase";
 import { COLORS } from "./constants/colors";
 import { BRAND_NAME, BRAND_TAGLINE } from "./constants/brand";
-import { ROLE_TABS, ALL_TABS } from "./constants/data";
+import { ROLE_TABS, ALL_TABS, SUBSCRIPTION_PLANS } from "./constants/data";
 import { useWindowSize } from "./hooks/useWindowSize";
 import { Avatar } from "./components/ui";
 import { Logo } from "./components/Logo";
@@ -16,7 +16,11 @@ import { LibraryPage } from "./pages/LibraryPage";
 import { SubscriptionsPage } from "./pages/SubscriptionsPage";
 import { MembershipsPage } from "./pages/MembershipsPage";
 import { AboutPage } from "./pages/AboutPage";
+import { MyChildPage } from "./pages/MyChildPage";
 import { AdminPage } from "./pages/AdminPage";
+
+// الصلاحيات التي تفتح تبويبات لوحة الإدارة لغير المدير
+const ADMIN_PERMS = ["editSchedule", "editRatings", "editData", "editCommerce"];
 
 export default function App() {
   const [currentUser, setCurrentUser]     = useState(null);
@@ -26,6 +30,7 @@ export default function App() {
   const [library, setLibrary]             = useState([]);
   const [products, setProducts]           = useState([]);
   const [directorMsg, setDirectorMsg]     = useState("نؤمن بأن كل موهبة تستحق الرعاية والتطوير.");
+  const [subscriptionPlans, setSubscriptionPlans] = useState(SUBSCRIPTION_PLANS);
   const [loading, setLoading]             = useState(true);
   const [loadError, setLoadError]         = useState(null);
   const { isDesktop }                     = useWindowSize();
@@ -77,6 +82,10 @@ export default function App() {
       if (settingsData) {
         const msg = settingsData.find(s => s.key === 'director_message');
         if (msg) setDirectorMsg(msg.value);
+        const plans = settingsData.find(s => s.key === 'subscription_plans');
+        if (plans) {
+          try { setSubscriptionPlans(JSON.parse(plans.value)); } catch { /* تبقى الأسعار الافتراضية */ }
+        }
       }
     } catch (err) {
       console.error('Error loading data:', err);
@@ -93,11 +102,20 @@ export default function App() {
     await supabase.from('settings').upsert({ key: 'director_message', value: msg });
   };
 
+  // ── حفظ أسعار الاشتراكات ──
+  const saveSubscriptionPlans = async (plans) => {
+    setSubscriptionPlans(plans);
+    await supabase.from('settings').upsert({ key: 'subscription_plans', value: JSON.stringify(plans) });
+  };
+
   const liveUser = currentUser ? users.find(u => u.id === currentUser.id) || currentUser : null;
 
   const handleLogin  = (user) => { setCurrentUser(user); setActive("home"); };
   const handleLogout = () => { setCurrentUser(null); setActive("home"); };
-  const allowedIds = ROLE_TABS[liveUser?.role] || [];
+  // من يحمل صلاحية إدارية يشوف تبويب الإدارة حتى لو ما كان مديرًا
+  const hasAdminAccess = liveUser?.role === "مدير" || ADMIN_PERMS.some(k => liveUser?.permissions?.[k]);
+  const allowedIds = [...(ROLE_TABS[liveUser?.role] || [])];
+  if (hasAdminAccess && !allowedIds.includes("admin")) allowedIds.push("admin");
   const myTabs = ALL_TABS.filter(t => allowedIds.includes(t.id));
   const bottomTabs = myTabs.slice(0, 5);
   const unreadCount = notifications.filter(n => !n.read && n.roles?.includes(liveUser?.role)).length;
@@ -108,11 +126,12 @@ export default function App() {
       case "players":       return <PlayersRegistryPage user={liveUser} users={users} setUsers={setUsers} loadData={loadData} />;
       case "store":         return <StorePage products={products} setProducts={setProducts} user={liveUser} />;
       case "notifications": return <NotificationsPage user={liveUser} notifications={notifications} setNotifications={setNotifications} />;
-      case "subscriptions": return <SubscriptionsPage user={liveUser} setUsers={setUsers} />;
+      case "subscriptions": return <SubscriptionsPage user={liveUser} setUsers={setUsers} plans={subscriptionPlans} />;
       case "memberships":   return <MembershipsPage user={liveUser} />;
       case "about":         return <AboutPage user={liveUser} setUsers={setUsers} />;
+      case "mychild":       return <MyChildPage user={liveUser} users={users} />;
       case "library":       return <LibraryPage user={liveUser} library={library} setLibrary={setLibrary} />;
-      case "admin":         return liveUser.role === "مدير" ? <AdminPage user={liveUser} users={users} setUsers={setUsers} products={products} setProducts={setProducts} loadData={loadData} /> : <HomePage onNav={setActive} user={liveUser} users={users} directorMsg={directorMsg} setDirectorMsg={saveDirectorMsg} />;
+      case "admin":         return hasAdminAccess ? <AdminPage user={liveUser} users={users} setUsers={setUsers} products={products} setProducts={setProducts} loadData={loadData} subscriptionPlans={subscriptionPlans} saveSubscriptionPlans={saveSubscriptionPlans} /> : <HomePage onNav={setActive} user={liveUser} users={users} directorMsg={directorMsg} setDirectorMsg={saveDirectorMsg} />;
       default:              return <HomePage onNav={setActive} user={liveUser} users={users} directorMsg={directorMsg} setDirectorMsg={saveDirectorMsg} />;
     }
   };

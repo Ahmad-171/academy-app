@@ -3,13 +3,14 @@ import { supabase } from "../lib/supabase";
 import { COLORS } from "../constants/colors";
 import { useWindowSize } from "../hooks/useWindowSize";
 import { useToast } from "../hooks/useToast";
-import { Field, ToastMsg } from "../components/ui";
+import { Field, Modal, ToastMsg } from "../components/ui";
 
 export function NotesManager({ users }) {
   const [notes, setNotes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [playerId, setPlayerId] = useState("");
   const [text, setText] = useState("");
+  const [editNote, setEditNote] = useState(null); // { id, note }
   const { isDesktop } = useWindowSize();
   const { toast, show } = useToast();
 
@@ -30,6 +31,22 @@ export function NotesManager({ users }) {
     if (error) { show(`⚠️ ${error.message}`, COLORS.danger); return; }
     setText("");
     show("✅ تم إضافة الملاحظة");
+    load();
+  };
+
+  const saveEdit = async () => {
+    if (!editNote.note.trim()) { show("⚠️ الملاحظة فارغة", COLORS.warning); return; }
+    const { error } = await supabase.from('player_notes').update({ note: editNote.note.trim() }).eq('id', editNote.id);
+    if (error) { show(`⚠️ ${error.message}`, COLORS.danger); return; }
+    setEditNote(null);
+    show("✅ تم تعديل الملاحظة");
+    load();
+  };
+
+  const deleteNote = async (id) => {
+    const { error } = await supabase.from('player_notes').delete().eq('id', id);
+    if (error) { show(`⚠️ ${error.message}`, COLORS.danger); return; }
+    show("🗑️ تم حذف الملاحظة", COLORS.danger);
     load();
   };
 
@@ -63,10 +80,26 @@ export function NotesManager({ users }) {
                 <span style={{ fontSize: 13, fontWeight: 800, color: COLORS.accent }}>{nameFor(n.user_id)}</span>
                 <span style={{ fontSize: 10, color: COLORS.textSecondary }}>{new Date(n.created_at).toLocaleDateString("ar-SA")}</span>
               </div>
-              <div style={{ fontSize: 13, color: COLORS.textPrimary, lineHeight: 1.6 }}>{n.note}</div>
+              <div style={{ fontSize: 13, color: COLORS.textPrimary, lineHeight: 1.6, marginBottom: 10 }}>{n.note}</div>
+              <div style={{ display: "flex", gap: 6 }}>
+                <button onClick={() => setEditNote({ id: n.id, note: n.note })} style={{ padding: "5px 12px", background: COLORS.accentBlue + "22", border: `1px solid ${COLORS.accentBlue}44`, color: COLORS.accentBlue, borderRadius: 7, fontSize: 11, fontWeight: 700, cursor: "pointer" }}>✏️ تعديل</button>
+                <button onClick={() => deleteNote(n.id)} style={{ padding: "5px 12px", background: COLORS.danger + "22", border: `1px solid ${COLORS.danger}44`, color: COLORS.danger, borderRadius: 7, fontSize: 11, fontWeight: 700, cursor: "pointer" }}>🗑️ حذف</button>
+              </div>
             </div>
           ))}
         </div>
+      )}
+
+      {/* تعديل ملاحظة */}
+      {editNote && (
+        <Modal title="✏️ تعديل الملاحظة" onClose={() => setEditNote(null)}>
+          <textarea value={editNote.note} onChange={e => setEditNote(p => ({ ...p, note: e.target.value }))} rows={4}
+            style={{ width: "100%", background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.textPrimary, borderRadius: 10, padding: "10px", fontSize: 13, resize: "vertical", boxSizing: "border-box", marginBottom: 14 }} />
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={() => setEditNote(null)} style={{ flex: 1, padding: "12px", borderRadius: 11, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.textSecondary, fontWeight: 700, cursor: "pointer" }}>إلغاء</button>
+            <button onClick={saveEdit} style={{ flex: 2, padding: "12px", borderRadius: 11, background: COLORS.accent, border: "none", color: "#000", fontWeight: 800, cursor: "pointer" }}>✅ حفظ</button>
+          </div>
+        </Modal>
       )}
     </div>
   );

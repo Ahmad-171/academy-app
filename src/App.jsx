@@ -17,6 +17,7 @@ import { SubscriptionsPage } from "./pages/SubscriptionsPage";
 import { MembershipsPage } from "./pages/MembershipsPage";
 import { AboutPage } from "./pages/AboutPage";
 import { MyChildPage } from "./pages/MyChildPage";
+import { MyRecordPage } from "./pages/MyRecordPage";
 import { AdminPage } from "./pages/AdminPage";
 
 // الصلاحيات التي تفتح تبويبات لوحة الإدارة لغير المدير
@@ -130,6 +131,7 @@ export default function App() {
       case "memberships":   return <MembershipsPage user={liveUser} />;
       case "about":         return <AboutPage user={liveUser} setUsers={setUsers} />;
       case "mychild":       return <MyChildPage user={liveUser} users={users} />;
+      case "myrecord":      return <MyRecordPage user={liveUser} />;
       case "library":       return <LibraryPage user={liveUser} library={library} setLibrary={setLibrary} />;
       case "admin":         return hasAdminAccess ? <AdminPage user={liveUser} users={users} setUsers={setUsers} products={products} setProducts={setProducts} loadData={loadData} subscriptionPlans={subscriptionPlans} saveSubscriptionPlans={saveSubscriptionPlans} /> : <HomePage onNav={setActive} user={liveUser} users={users} directorMsg={directorMsg} setDirectorMsg={saveDirectorMsg} />;
       default:              return <HomePage onNav={setActive} user={liveUser} users={users} directorMsg={directorMsg} setDirectorMsg={saveDirectorMsg} />;

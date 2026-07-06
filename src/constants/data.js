@@ -27,13 +27,14 @@ export const PERMISSION_LABELS = {
 export const ROLE_TABS = {
   "مدير":    ["home","players","subscriptions","memberships","store","notifications","library","about","admin"],
   "مدرب":    ["home","players","notifications","library","about"],
-  "لاعب":    ["home","subscriptions","memberships","store","notifications","library","about"],
+  "لاعب":    ["home","myrecord","subscriptions","memberships","store","notifications","library","about"],
   "ولي أمر": ["home","mychild","subscriptions","memberships","store","notifications","library","about"],
 };
 
 export const ALL_TABS = [
   { id: "home",          icon: "🏠", label: "الرئيسية" },
   { id: "players",       icon: "📋", label: "تسجيل اللاعبين" },
+  { id: "myrecord",      icon: "👤", label: "ملفي" },
   { id: "mychild",       icon: "👨‍👦", label: "ملف ولدي" },
   { id: "subscriptions", icon: "💳", label: "الاشتراكات" },
   { id: "memberships",   icon: "💎", label: "العضويات" },

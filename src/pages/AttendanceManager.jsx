@@ -104,8 +104,8 @@ export function AttendanceManager({ users, canEdit = true }) {
         )}
       </div>
 
-      {/* عرض الكل — اليوم */}
-      {mode === "all" && (
+      {/* عرض الكل — اليوم (جدول على الشاشات الكبيرة، بطاقات على الجوال) */}
+      {mode === "all" && isDesktop && (
         <div style={{ background: COLORS.cardBg, border: `1px solid ${COLORS.border}`, borderRadius: 16, overflow: "hidden" }}>
           <div style={{ overflowX: "auto" }}>
             <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 520 }}>
@@ -146,6 +146,46 @@ export function AttendanceManager({ users, canEdit = true }) {
             </table>
           </div>
           {loading && <div style={{ padding: 14, textAlign: "center", color: COLORS.textSecondary, fontSize: 12 }}>جاري التحديث...</div>}
+        </div>
+      )}
+
+      {/* عرض الكل — بطاقات للجوال (كل شيء يظهر بدون سحب أفقي) */}
+      {mode === "all" && !isDesktop && (
+        <div>
+          {loading && <div style={{ padding: 14, textAlign: "center", color: COLORS.textSecondary, fontSize: 12 }}>جاري التحديث...</div>}
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {people.map(p => {
+              const row = rowFor(p.id);
+              return (
+                <div key={p.id} style={{ background: COLORS.cardBg, border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: "12px 14px" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                    <Avatar letter={p.name[0]} size={34} color={p.role === "مدرب" ? COLORS.accentGold : COLORS.accent} />
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 14, fontWeight: 800, color: COLORS.textPrimary }}>{p.name}</div>
+                      <Badge text={p.role} color={p.role === "مدرب" ? COLORS.accentGold : COLORS.accent} />
+                    </div>
+                  </div>
+                  <div style={{ display: "flex", gap: 8, marginBottom: canEdit ? 10 : 0 }}>
+                    <div style={{ flex: 1, background: COLORS.surface, borderRadius: 10, padding: "8px 10px", textAlign: "center" }}>
+                      <div style={{ fontSize: 10, color: COLORS.textSecondary, marginBottom: 3 }}>الحضور</div>
+                      <div style={{ fontSize: 14, fontWeight: 800, color: row?.check_in ? COLORS.accent : COLORS.textSecondary }}>{fmtTime(row?.check_in)}</div>
+                    </div>
+                    <div style={{ flex: 1, background: COLORS.surface, borderRadius: 10, padding: "8px 10px", textAlign: "center" }}>
+                      <div style={{ fontSize: 10, color: COLORS.textSecondary, marginBottom: 3 }}>الانصراف</div>
+                      <div style={{ fontSize: 14, fontWeight: 800, color: row?.check_out ? COLORS.warning : COLORS.textSecondary }}>{fmtTime(row?.check_out)}</div>
+                    </div>
+                  </div>
+                  {canEdit && (
+                    <div style={{ display: "flex", gap: 6 }}>
+                      {!row?.check_in && <button onClick={() => quickCheck(p.id, "check_in")} style={{ flex: 1, background: COLORS.accent + "22", border: `1px solid ${COLORS.accent}44`, color: COLORS.accent, borderRadius: 9, padding: "9px", cursor: "pointer", fontSize: 12, fontWeight: 800 }}>✅ حضور</button>}
+                      {row?.check_in && !row?.check_out && <button onClick={() => quickCheck(p.id, "check_out")} style={{ flex: 1, background: COLORS.warning + "22", border: `1px solid ${COLORS.warning}44`, color: COLORS.warning, borderRadius: 9, padding: "9px", cursor: "pointer", fontSize: 12, fontWeight: 800 }}>🚪 انصراف</button>}
+                      <button onClick={() => openEdit(p.id, row)} style={{ flex: row?.check_in && row?.check_out ? 1 : "0 0 auto", background: COLORS.accentBlue + "22", border: `1px solid ${COLORS.accentBlue}44`, color: COLORS.accentBlue, borderRadius: 9, padding: "9px 14px", cursor: "pointer", fontSize: 12, fontWeight: 700 }}>✏️ تعديل الوقت</button>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 

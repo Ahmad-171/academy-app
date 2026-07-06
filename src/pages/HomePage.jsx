@@ -6,11 +6,12 @@ import { useWindowSize } from "../hooks/useWindowSize";
 import { StatCard, Avatar, Badge } from "../components/ui";
 import { Logo } from "../components/Logo";
 
-export function HomePage({ onNav, user, users, directorMsg, setDirectorMsg, heroBg, setHeroBg }) {
+export function HomePage({ onNav, user, users, directorMsg, setDirectorMsg, heroBg, setHeroBg, logoUrl, setLogo }) {
   const [visible, setVisible] = useState(false);
   const [editMsg, setEditMsg] = useState(false);
   const [tempMsg, setTempMsg] = useState(directorMsg);
   const [bgUploading, setBgUploading] = useState(false);
+  const [logoUploading, setLogoUploading] = useState(false);
   const { isDesktop } = useWindowSize();
   useEffect(() => { setTimeout(() => setVisible(true), 100); }, []);
 
@@ -25,6 +26,14 @@ export function HomePage({ onNav, user, users, directorMsg, setDirectorMsg, hero
     const { url, error } = await uploadMedia(file, "hero");
     if (!error && url) await setHeroBg(url);
     setBgUploading(false);
+  };
+
+  const changeLogo = async (file) => {
+    if (!file) return;
+    setLogoUploading(true);
+    const { url, error } = await uploadMedia(file, "logo");
+    if (!error && url) await setLogo(url);
+    setLogoUploading(false);
   };
 
   return (
@@ -46,7 +55,15 @@ export function HomePage({ onNav, user, users, directorMsg, setDirectorMsg, hero
         <div style={{ display: "flex", gap: 24, flexDirection: isDesktop ? "row" : "column", alignItems: isDesktop ? "center" : "flex-start" }}>
           <div style={{ flex: 1 }}>
             <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 18 }}>
-              <div style={{ opacity: visible ? 1 : 0, transition: "all 0.6s ease" }}><Logo size={isDesktop ? 64 : 54} /></div>
+              <div style={{ opacity: visible ? 1 : 0, transition: "all 0.6s ease", position: "relative" }}>
+                <Logo size={isDesktop ? 64 : 54} src={logoUrl} />
+                {canEditMsg && (
+                  <label title="تغيير الشعار" style={{ position: "absolute", bottom: -6, left: -6, width: 24, height: 24, borderRadius: "50%", background: COLORS.accent, color: "#000", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, cursor: "pointer", border: "2px solid #0a1628" }}>
+                    {logoUploading ? "…" : "✎"}
+                    <input type="file" accept="image/*" onChange={e => changeLogo(e.target.files?.[0])} style={{ display: "none" }} />
+                  </label>
+                )}
+              </div>
               <div>
                 <div style={{ fontSize: isDesktop ? 26 : 20, fontWeight: 900, color: COLORS.textPrimary }}>{BRAND_NAME}</div>
                 <div style={{ fontSize: 11, color: COLORS.accent, letterSpacing: 2, marginTop: 2 }}>{BRAND_TAGLINE}</div>

@@ -33,6 +33,7 @@ export default function App() {
   const [directorMsg, setDirectorMsg]     = useState("نؤمن بأن كل موهبة تستحق الرعاية والتطوير.");
   const [subscriptionPlans, setSubscriptionPlans] = useState(SUBSCRIPTION_PLANS);
   const [heroBg, setHeroBg]               = useState("");
+  const [logoUrl, setLogoUrl]             = useState("");
   const [loading, setLoading]             = useState(true);
   const [loadError, setLoadError]         = useState(null);
   const { isDesktop }                     = useWindowSize();
@@ -90,6 +91,8 @@ export default function App() {
         }
         const bg = settingsData.find(s => s.key === 'hero_background');
         if (bg) setHeroBg(bg.value || "");
+        const logo = settingsData.find(s => s.key === 'logo_url');
+        if (logo) setLogoUrl(logo.value || "");
       }
     } catch (err) {
       console.error('Error loading data:', err);
@@ -118,6 +121,12 @@ export default function App() {
     await supabase.from('settings').upsert({ key: 'hero_background', value: url });
   };
 
+  // ── حفظ شعار الأكاديمية ──
+  const saveLogo = async (url) => {
+    setLogoUrl(url);
+    await supabase.from('settings').upsert({ key: 'logo_url', value: url });
+  };
+
   const liveUser = currentUser ? users.find(u => u.id === currentUser.id) || currentUser : null;
 
   const handleLogin  = (user) => { setCurrentUser(user); setActive("home"); };
@@ -132,7 +141,7 @@ export default function App() {
 
   const renderPage = () => {
     switch (active) {
-      case "home":          return <HomePage onNav={setActive} user={liveUser} users={users} directorMsg={directorMsg} setDirectorMsg={saveDirectorMsg} heroBg={heroBg} setHeroBg={saveHeroBg} />;
+      case "home":          return <HomePage onNav={setActive} user={liveUser} users={users} directorMsg={directorMsg} setDirectorMsg={saveDirectorMsg} heroBg={heroBg} setHeroBg={saveHeroBg} logoUrl={logoUrl} setLogo={saveLogo} />;
       case "players":       return <PlayersRegistryPage user={liveUser} users={users} setUsers={setUsers} loadData={loadData} />;
       case "store":         return <StorePage products={products} setProducts={setProducts} user={liveUser} />;
       case "notifications": return <NotificationsPage user={liveUser} notifications={notifications} setNotifications={setNotifications} />;
@@ -142,8 +151,8 @@ export default function App() {
       case "mychild":       return <MyChildPage user={liveUser} users={users} />;
       case "myrecord":      return <MyRecordPage user={liveUser} />;
       case "library":       return <LibraryPage user={liveUser} library={library} setLibrary={setLibrary} />;
-      case "admin":         return hasAdminAccess ? <AdminPage user={liveUser} users={users} setUsers={setUsers} products={products} setProducts={setProducts} loadData={loadData} subscriptionPlans={subscriptionPlans} saveSubscriptionPlans={saveSubscriptionPlans} /> : <HomePage onNav={setActive} user={liveUser} users={users} directorMsg={directorMsg} setDirectorMsg={saveDirectorMsg} heroBg={heroBg} setHeroBg={saveHeroBg} />;
-      default:              return <HomePage onNav={setActive} user={liveUser} users={users} directorMsg={directorMsg} setDirectorMsg={saveDirectorMsg} heroBg={heroBg} setHeroBg={saveHeroBg} />;
+      case "admin":         return hasAdminAccess ? <AdminPage user={liveUser} users={users} setUsers={setUsers} products={products} setProducts={setProducts} loadData={loadData} subscriptionPlans={subscriptionPlans} saveSubscriptionPlans={saveSubscriptionPlans} /> : <HomePage onNav={setActive} user={liveUser} users={users} directorMsg={directorMsg} setDirectorMsg={saveDirectorMsg} heroBg={heroBg} setHeroBg={saveHeroBg} logoUrl={logoUrl} setLogo={saveLogo} />;
+      default:              return <HomePage onNav={setActive} user={liveUser} users={users} directorMsg={directorMsg} setDirectorMsg={saveDirectorMsg} heroBg={heroBg} setHeroBg={saveHeroBg} logoUrl={logoUrl} setLogo={saveLogo} />;
     }
   };
   if (loading) return (
@@ -154,7 +163,7 @@ export default function App() {
     </div>
   );
 
-  if (!liveUser) return <LoginPage onLogin={handleLogin} users={users} loadError={loadError} />;
+  if (!liveUser) return <LoginPage onLogin={handleLogin} users={users} loadError={loadError} logoUrl={logoUrl} />;
 
   return (
     <div style={{ minHeight: "100vh", background: COLORS.darkBg, fontFamily: "'Cairo',sans-serif", direction: "rtl", color: COLORS.textPrimary, overflowX: "hidden" }}>
@@ -169,7 +178,7 @@ export default function App() {
             {/* الشعار */}
             <div style={{ padding: "22px 18px 16px", borderBottom: `1px solid ${COLORS.border}` }}>
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
-                <Logo size={40} />
+                <Logo size={40} src={logoUrl} />
                 <div>
                   <div style={{ fontSize: 14, fontWeight: 800, color: COLORS.textPrimary }}>{BRAND_NAME}</div>
                   <div style={{ fontSize: 9, color: COLORS.accent, letterSpacing: 1 }}>{BRAND_TAGLINE}</div>
@@ -227,7 +236,7 @@ export default function App() {
           {!isDesktop && (
             <div style={{ background: COLORS.cardBg, borderBottom: `1px solid ${COLORS.border}`, padding: "11px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", position: "sticky", top: 0, zIndex: 50 }}>
               <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                <Logo size={32} />
+                <Logo size={32} src={logoUrl} />
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 800, color: COLORS.textPrimary }}>{BRAND_NAME}</div>
                   <div style={{ fontSize: 9, color: COLORS.accent }}>{liveUser.customRole || liveUser.role}: {liveUser.name}</div>

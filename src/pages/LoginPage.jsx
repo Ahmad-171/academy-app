@@ -5,7 +5,7 @@ import { useWindowSize } from "../hooks/useWindowSize";
 import { Badge } from "../components/ui";
 import { Logo } from "../components/Logo";
 
-export function LoginPage({ onLogin, users, loadError }) {
+export function LoginPage({ onLogin, users, loadError, logoUrl }) {
   const [idNum, setIdNum] = useState("");
   const [pass, setPass] = useState("");
   const [error, setError] = useState("");
@@ -51,7 +51,7 @@ export function LoginPage({ onLogin, users, loadError }) {
 
         {isDesktop && (
           <div style={{ flex: 1, textAlign: "center" }}>
-            <div style={{ margin: "0 auto 20px", filter: "drop-shadow(0 0 40px #1fc7c766)" }}><Logo size={110} /></div>
+            <div style={{ margin: "0 auto 20px", filter: "drop-shadow(0 0 40px #1fc7c766)" }}><Logo size={110} src={logoUrl} /></div>
             <div style={{ fontSize: 32, fontWeight: 900, color: COLORS.textPrimary, marginBottom: 6 }}>{BRAND_NAME}</div>
             <div style={{ fontSize: 13, color: COLORS.accent, letterSpacing: 3, marginBottom: 28 }}>{BRAND_TAGLINE}</div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
@@ -74,7 +74,7 @@ export function LoginPage({ onLogin, users, loadError }) {
         <div style={{ width: isDesktop ? 370 : "100%" }}>
           {!isDesktop && (
             <div style={{ textAlign: "center", marginBottom: 24 }}>
-              <div style={{ margin: "0 auto 10px" }}><Logo size={76} /></div>
+              <div style={{ margin: "0 auto 10px" }}><Logo size={76} src={logoUrl} /></div>
               <div style={{ fontSize: 20, fontWeight: 900, color: COLORS.textPrimary }}>{BRAND_NAME}</div>
             </div>
           )}

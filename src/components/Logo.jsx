@@ -1,4 +1,8 @@
-export function Logo({ size = 64 }) {
+// إذا رُفع شعار مخصص (src) نعرضه كصورة، وإلا نعرض الشعار الافتراضي (SVG).
+export function Logo({ size = 64, src }) {
+  if (src) {
+    return <img src={src} alt="logo" width={size} height={size} style={{ objectFit: "contain", borderRadius: 12, display: "block" }} />;
+  }
   return (
     <svg width={size} height={size} viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
       <defs>

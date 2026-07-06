@@ -156,44 +156,71 @@ export function FinanceManager({ user }) {
         )}
       </div>
 
-      {/* الجدول */}
-      <div style={{ background: COLORS.cardBg, border: `1px solid ${COLORS.border}`, borderRadius: 16, overflow: "hidden" }}>
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 500 }}>
-            <thead>
-              <tr style={{ background: COLORS.surface }}>
-                {["النوع", "البيان", "المبلغ", "التاريخ", "ملاحظة", ""].map((h, i) => (
-                  <th key={i} style={{ padding: "12px 14px", fontSize: 11, color: COLORS.textSecondary, fontWeight: 700, textAlign: "center", borderBottom: `1px solid ${COLORS.border}`, whiteSpace: "nowrap" }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map(r => (
-                <tr key={r.id} style={{ borderBottom: `1px solid ${COLORS.border}`, background: r.type === "revenue" ? `${COLORS.accent}05` : `${COLORS.danger}05` }}>
-                  <td style={{ padding: "12px 14px", textAlign: "center" }}>
-                    <Badge text={r.type === "revenue" ? "💰 إيراد" : "📉 مصروف"} color={r.type === "revenue" ? COLORS.accent : COLORS.danger} />
-                  </td>
-                  <td style={{ padding: "12px 14px", fontSize: 13, color: COLORS.textPrimary, fontWeight: 600 }}>{r.label}</td>
-                  <td style={{ padding: "12px 14px", textAlign: "center", fontSize: 14, fontWeight: 800, color: r.type === "revenue" ? COLORS.accent : COLORS.danger }}>
-                    {r.type === "revenue" ? "+" : "-"}{formatNum(Number(r.amount))}
-                  </td>
-                  <td style={{ padding: "12px 14px", textAlign: "center", fontSize: 12, color: COLORS.textSecondary }}>{r.date || "-"}</td>
-                  <td style={{ padding: "12px 14px", textAlign: "center", fontSize: 11, color: COLORS.textSecondary }}>{r.note || "-"}</td>
-                  <td style={{ padding: "10px 14px", textAlign: "center" }}>
-                    <button onClick={() => setDetailModal(r)}
-                      style={{ background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.textSecondary, borderRadius: 8, padding: "5px 12px", cursor: "pointer", fontSize: 12 }}>
-                      تفاصيل
-                    </button>
-                  </td>
+      {/* الجدول — على الشاشات الكبيرة */}
+      {isDesktop && (
+        <div style={{ background: COLORS.cardBg, border: `1px solid ${COLORS.border}`, borderRadius: 16, overflow: "hidden" }}>
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 500 }}>
+              <thead>
+                <tr style={{ background: COLORS.surface }}>
+                  {["النوع", "البيان", "المبلغ", "التاريخ", "ملاحظة", ""].map((h, i) => (
+                    <th key={i} style={{ padding: "12px 14px", fontSize: 11, color: COLORS.textSecondary, fontWeight: 700, textAlign: "center", borderBottom: `1px solid ${COLORS.border}`, whiteSpace: "nowrap" }}>{h}</th>
+                  ))}
                 </tr>
-              ))}
-              {filtered.length === 0 && (
-                <tr><td colSpan={6} style={{ padding: "40px", textAlign: "center", color: COLORS.textSecondary }}>لا توجد سجلات</td></tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {filtered.map(r => (
+                  <tr key={r.id} style={{ borderBottom: `1px solid ${COLORS.border}`, background: r.type === "revenue" ? `${COLORS.accent}05` : `${COLORS.danger}05` }}>
+                    <td style={{ padding: "12px 14px", textAlign: "center" }}>
+                      <Badge text={r.type === "revenue" ? "💰 إيراد" : "📉 مصروف"} color={r.type === "revenue" ? COLORS.accent : COLORS.danger} />
+                    </td>
+                    <td style={{ padding: "12px 14px", fontSize: 13, color: COLORS.textPrimary, fontWeight: 600 }}>{r.label}</td>
+                    <td style={{ padding: "12px 14px", textAlign: "center", fontSize: 14, fontWeight: 800, color: r.type === "revenue" ? COLORS.accent : COLORS.danger }}>
+                      {r.type === "revenue" ? "+" : "-"}{formatNum(Number(r.amount))}
+                    </td>
+                    <td style={{ padding: "12px 14px", textAlign: "center", fontSize: 12, color: COLORS.textSecondary }}>{r.date || "-"}</td>
+                    <td style={{ padding: "12px 14px", textAlign: "center", fontSize: 11, color: COLORS.textSecondary }}>{r.note || "-"}</td>
+                    <td style={{ padding: "10px 14px", textAlign: "center" }}>
+                      <button onClick={() => setDetailModal(r)}
+                        style={{ background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.textSecondary, borderRadius: 8, padding: "5px 12px", cursor: "pointer", fontSize: 12 }}>
+                        تفاصيل
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+                {filtered.length === 0 && (
+                  <tr><td colSpan={6} style={{ padding: "40px", textAlign: "center", color: COLORS.textSecondary }}>لا توجد سجلات</td></tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* بطاقات — على الجوال */}
+      {!isDesktop && (
+        filtered.length === 0 ? (
+          <div style={{ background: COLORS.cardBg, border: `1px solid ${COLORS.border}`, borderRadius: 16, padding: "40px", textAlign: "center", color: COLORS.textSecondary }}>لا توجد سجلات</div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {filtered.map(r => (
+              <div key={r.id} onClick={() => setDetailModal(r)} style={{ background: COLORS.cardBg, border: `1px solid ${r.type === "revenue" ? COLORS.accent + "44" : COLORS.danger + "44"}`, borderRadius: 14, padding: "13px 15px", cursor: "pointer" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 10, marginBottom: 6 }}>
+                  <Badge text={r.type === "revenue" ? "💰 إيراد" : "📉 مصروف"} color={r.type === "revenue" ? COLORS.accent : COLORS.danger} />
+                  <span style={{ fontSize: 16, fontWeight: 900, color: r.type === "revenue" ? COLORS.accent : COLORS.danger }}>
+                    {r.type === "revenue" ? "+" : "-"}{formatNum(Number(r.amount))} <span style={{ fontSize: 11, fontWeight: 400 }}>ر.س</span>
+                  </span>
+                </div>
+                <div style={{ fontSize: 14, fontWeight: 700, color: COLORS.textPrimary, marginBottom: 4 }}>{r.label}</div>
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: COLORS.textSecondary }}>
+                  <span>📅 {r.date || "-"}</span>
+                  {r.note && <span style={{ maxWidth: "60%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>📝 {r.note}</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+        )
+      )}
 
       {/* Modal إضافة */}
       {addModal && (

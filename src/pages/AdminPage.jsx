@@ -380,6 +380,7 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
       <div style={{ fontSize: 16, fontWeight: 800, color: COLORS.textPrimary }}>🛒 منتجات المتجر</div>
       <button onClick={() => { setNewProduct(EMPTY_PRODUCT); setProductModal(true); }} style={{ padding: "8px 16px", background: COLORS.accent, border: "none", color: "#000", borderRadius: 10, fontWeight: 800, fontSize: 12, cursor: "pointer" }}>+ منتج جديد</button>
     </div>
+    {isDesktop && (
     <div style={{ background: COLORS.cardBg, border: `1px solid ${COLORS.border}`, borderRadius: 16, overflow: "hidden", marginBottom: 28 }}>
       <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
       <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 420 }}>
@@ -425,6 +426,42 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
       </table>
       </div>
     </div>
+    )}
+
+    {!isDesktop && (
+      <div style={{ marginBottom: 28 }}>
+        {products.length === 0 ? (
+          <div style={{ background: COLORS.cardBg, border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: 24, textAlign: "center", color: COLORS.textSecondary, fontSize: 13 }}>لا توجد منتجات — أضف أول منتج</div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {products.map((p) => (
+              <div key={p.id} style={{ background: COLORS.cardBg, border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: "13px 15px" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
+                  <span style={{ fontSize: 26 }}>{p.img}</span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 14, fontWeight: 800, color: COLORS.textPrimary }}>{p.name}</div>
+                    <Badge text={p.category} color={COLORS.textSecondary} />
+                  </div>
+                </div>
+                <div style={{ display: "flex", gap: 8, alignItems: "flex-end" }}>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 10, color: COLORS.textSecondary, marginBottom: 4 }}>السعر (ر.س)</div>
+                    <input
+                      type="number"
+                      defaultValue={p.price}
+                      onChange={e => { productPriceEdits.current[p.id] = e.target.value; }}
+                      style={{ width: "100%", background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.accentGold, borderRadius: 8, padding: "9px 10px", fontSize: 15, fontWeight: 800, textAlign: "center", boxSizing: "border-box" }}
+                    />
+                  </div>
+                  <button onClick={() => saveProductPrice(p)} style={{ padding: "10px 16px", background: COLORS.accent, border: "none", color: "#000", borderRadius: 8, fontWeight: 800, fontSize: 13, cursor: "pointer" }}>💾 حفظ</button>
+                  <button onClick={() => deleteProduct(p)} style={{ padding: "10px 14px", background: COLORS.danger + "22", border: `1px solid ${COLORS.danger}44`, color: COLORS.danger, borderRadius: 8, fontWeight: 800, fontSize: 13, cursor: "pointer" }}>🗑️</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    )}
 
     {/* أكواد الخصم */}
     <div style={{ fontSize: 16, fontWeight: 800, color: COLORS.textPrimary, marginBottom: 14 }}>🎟️ أكواد الخصم</div>
@@ -436,6 +473,7 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
         <Field label="عدد الاستخدامات (اتركه فارغًا = بلا حد)" value={newCode.maxUses} onChange={v => setNewCode(p => ({ ...p, maxUses: v }))} type="number" placeholder="مثال: 50" />
         <button onClick={createCode} style={{ width: "100%", padding: "11px", background: COLORS.accent, border: "none", color: "#000", borderRadius: 10, fontWeight: 800, cursor: "pointer" }}>✅ إنشاء الكود</button>
       </div>
+      {isDesktop && (
       <div style={{ background: COLORS.cardBg, border: `1px solid ${COLORS.border}`, borderRadius: 14, overflow: "hidden" }}>
         <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 460 }}>
@@ -473,6 +511,35 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
         </table>
         </div>
       </div>
+      )}
+
+      {!isDesktop && (
+        codes.length === 0 ? (
+          <div style={{ background: COLORS.cardBg, border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: 22, textAlign: "center", color: COLORS.textSecondary, fontSize: 13 }}>لا توجد أكواد بعد</div>
+        ) : (
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {codes.map(c => {
+              const exhausted = c.max_uses != null && (c.used_count || 0) >= c.max_uses;
+              return (
+                <div key={c.code} style={{ background: COLORS.cardBg, border: `1px solid ${COLORS.border}`, borderRadius: 13, padding: "13px 15px" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                    <span style={{ fontSize: 15, fontWeight: 900, color: COLORS.textPrimary, letterSpacing: 0.5 }}>{c.code}</span>
+                    <span style={{ fontSize: 16, fontWeight: 900, color: COLORS.accent }}>{c.percent_off}٪</span>
+                  </div>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+                    <span style={{ fontSize: 12, color: COLORS.textSecondary }}>الاستخدام: {c.used_count || 0}{c.max_uses != null ? ` / ${c.max_uses}` : " (بلا حد)"}</span>
+                    <Badge text={exhausted ? "منتهي" : c.active ? "مفعّل" : "موقوف"} color={exhausted ? COLORS.textSecondary : c.active ? COLORS.accent : COLORS.danger} />
+                  </div>
+                  <div style={{ display: "flex", gap: 6 }}>
+                    <button onClick={() => toggleCode(c)} style={{ flex: 1, padding: "9px", background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.textSecondary, borderRadius: 9, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>{c.active ? "إيقاف" : "تفعيل"}</button>
+                    <button onClick={() => deleteCode(c)} style={{ padding: "9px 16px", background: COLORS.danger + "22", border: `1px solid ${COLORS.danger}44`, color: COLORS.danger, borderRadius: 9, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>🗑️ حذف</button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )
+      )}
     </div>
 
     {/* Modal منتج جديد */}

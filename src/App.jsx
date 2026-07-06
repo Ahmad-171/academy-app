@@ -230,7 +230,7 @@ export default function App() {
         )}
 
         {/* ── المحتوى الرئيسي ── */}
-        <div style={{ flex: 1, marginRight: isDesktop ? 255 : 0, paddingBottom: isDesktop ? 0 : 80, minHeight: "100vh" }}>
+        <div style={{ flex: 1, minWidth: 0, marginRight: isDesktop ? 255 : 0, paddingBottom: isDesktop ? 0 : 80, minHeight: "100vh" }}>
 
           {/* Header - Mobile فقط */}
           {!isDesktop && (

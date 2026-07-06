@@ -226,8 +226,8 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
       {/* نظرة عامة */}
       {adminTab === "overview" && (
         <div>
-          <div style={{ overflowX: "auto", marginBottom: 22, paddingBottom: 4, WebkitOverflowScrolling: "touch" }}>
-            <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(4,1fr)" : "repeat(4,160px)", gap: 12, minWidth: isDesktop ? "unset" : "max-content" }}>
+          <div style={{ marginBottom: 22 }}>
+            <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(4,1fr)" : "repeat(2,1fr)", gap: 12 }}>
               <StatCard label="إجمالي المشتركين" value={String(players.length)} icon="👥" color={COLORS.accent} sub="لاعب مسجل" />
               <StatCard label="مشترك نشط" value={String(players.filter(p => p.status !== "موقوف").length)} icon="✅" color={COLORS.accentGold} sub="حساب فعّال" />
               <StatCard label="مشترك غير نشط" value={String(players.filter(p => p.status === "موقوف").length)} icon="⛔" color={COLORS.danger} sub="حساب موقوف" />

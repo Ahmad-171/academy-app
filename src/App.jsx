@@ -32,6 +32,7 @@ export default function App() {
   const [products, setProducts]           = useState([]);
   const [directorMsg, setDirectorMsg]     = useState("نؤمن بأن كل موهبة تستحق الرعاية والتطوير.");
   const [subscriptionPlans, setSubscriptionPlans] = useState(SUBSCRIPTION_PLANS);
+  const [heroBg, setHeroBg]               = useState("");
   const [loading, setLoading]             = useState(true);
   const [loadError, setLoadError]         = useState(null);
   const { isDesktop }                     = useWindowSize();
@@ -87,6 +88,8 @@ export default function App() {
         if (plans) {
           try { setSubscriptionPlans(JSON.parse(plans.value)); } catch { /* تبقى الأسعار الافتراضية */ }
         }
+        const bg = settingsData.find(s => s.key === 'hero_background');
+        if (bg) setHeroBg(bg.value || "");
       }
     } catch (err) {
       console.error('Error loading data:', err);
@@ -109,6 +112,12 @@ export default function App() {
     await supabase.from('settings').upsert({ key: 'subscription_plans', value: JSON.stringify(plans) });
   };
 
+  // ── حفظ خلفية الصفحة الرئيسية ──
+  const saveHeroBg = async (url) => {
+    setHeroBg(url);
+    await supabase.from('settings').upsert({ key: 'hero_background', value: url });
+  };
+
   const liveUser = currentUser ? users.find(u => u.id === currentUser.id) || currentUser : null;
 
   const handleLogin  = (user) => { setCurrentUser(user); setActive("home"); };
@@ -123,7 +132,7 @@ export default function App() {
 
   const renderPage = () => {
     switch (active) {
-      case "home":          return <HomePage onNav={setActive} user={liveUser} users={users} directorMsg={directorMsg} setDirectorMsg={saveDirectorMsg} />;
+      case "home":          return <HomePage onNav={setActive} user={liveUser} users={users} directorMsg={directorMsg} setDirectorMsg={saveDirectorMsg} heroBg={heroBg} setHeroBg={saveHeroBg} />;
       case "players":       return <PlayersRegistryPage user={liveUser} users={users} setUsers={setUsers} loadData={loadData} />;
       case "store":         return <StorePage products={products} setProducts={setProducts} user={liveUser} />;
       case "notifications": return <NotificationsPage user={liveUser} notifications={notifications} setNotifications={setNotifications} />;
@@ -133,8 +142,8 @@ export default function App() {
       case "mychild":       return <MyChildPage user={liveUser} users={users} />;
       case "myrecord":      return <MyRecordPage user={liveUser} />;
       case "library":       return <LibraryPage user={liveUser} library={library} setLibrary={setLibrary} />;
-      case "admin":         return hasAdminAccess ? <AdminPage user={liveUser} users={users} setUsers={setUsers} products={products} setProducts={setProducts} loadData={loadData} subscriptionPlans={subscriptionPlans} saveSubscriptionPlans={saveSubscriptionPlans} /> : <HomePage onNav={setActive} user={liveUser} users={users} directorMsg={directorMsg} setDirectorMsg={saveDirectorMsg} />;
-      default:              return <HomePage onNav={setActive} user={liveUser} users={users} directorMsg={directorMsg} setDirectorMsg={saveDirectorMsg} />;
+      case "admin":         return hasAdminAccess ? <AdminPage user={liveUser} users={users} setUsers={setUsers} products={products} setProducts={setProducts} loadData={loadData} subscriptionPlans={subscriptionPlans} saveSubscriptionPlans={saveSubscriptionPlans} /> : <HomePage onNav={setActive} user={liveUser} users={users} directorMsg={directorMsg} setDirectorMsg={saveDirectorMsg} heroBg={heroBg} setHeroBg={saveHeroBg} />;
+      default:              return <HomePage onNav={setActive} user={liveUser} users={users} directorMsg={directorMsg} setDirectorMsg={saveDirectorMsg} heroBg={heroBg} setHeroBg={saveHeroBg} />;
     }
   };
   if (loading) return (

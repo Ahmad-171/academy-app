@@ -1,14 +1,16 @@
 import { useState, useEffect } from "react";
+import { uploadMedia } from "../lib/media";
 import { COLORS } from "../constants/colors";
 import { BRAND_NAME, BRAND_TAGLINE } from "../constants/brand";
 import { useWindowSize } from "../hooks/useWindowSize";
 import { StatCard, Avatar, Badge } from "../components/ui";
 import { Logo } from "../components/Logo";
 
-export function HomePage({ onNav, user, users, directorMsg, setDirectorMsg }) {
+export function HomePage({ onNav, user, users, directorMsg, setDirectorMsg, heroBg, setHeroBg }) {
   const [visible, setVisible] = useState(false);
   const [editMsg, setEditMsg] = useState(false);
   const [tempMsg, setTempMsg] = useState(directorMsg);
+  const [bgUploading, setBgUploading] = useState(false);
   const { isDesktop } = useWindowSize();
   useEffect(() => { setTimeout(() => setVisible(true), 100); }, []);
 
@@ -17,11 +19,29 @@ export function HomePage({ onNav, user, users, directorMsg, setDirectorMsg }) {
   const avgAtt  = players.length ? Math.round(players.reduce((s, p) => s + p.attendance, 0) / players.length) : 0;
   const canEditMsg = user.role === "مدير";
 
+  const changeBg = async (file) => {
+    if (!file) return;
+    setBgUploading(true);
+    const { url, error } = await uploadMedia(file, "hero");
+    if (!error && url) await setHeroBg(url);
+    setBgUploading(false);
+  };
+
   return (
     <div style={{ padding: isDesktop ? "32px" : "0 0 40px" }}>
       {/* Hero */}
-      <div style={{ background: "linear-gradient(160deg,#0a1628 0%,#0d2044 50%,#0a1628 100%)", padding: isDesktop ? "40px 48px" : "32px 18px 26px", position: "relative", overflow: "hidden", borderBottom: `1px solid ${COLORS.border}`, borderRadius: isDesktop ? 20 : 0, marginBottom: isDesktop ? 24 : 0 }}>
-        <div style={{ position: "absolute", inset: 0, opacity: 0.04, backgroundImage: `repeating-linear-gradient(0deg,#fff 0,#fff 1px,transparent 1px,transparent 60px),repeating-linear-gradient(90deg,#fff 0,#fff 1px,transparent 1px,transparent 60px)` }} />
+      <div style={{ background: heroBg ? `linear-gradient(160deg,#0a1628cc 0%,#0d2044aa 50%,#0a1628cc 100%), url(${heroBg}) center/cover no-repeat` : "linear-gradient(160deg,#0a1628 0%,#0d2044 50%,#0a1628 100%)", padding: isDesktop ? "40px 48px" : "32px 18px 26px", position: "relative", overflow: "hidden", borderBottom: `1px solid ${COLORS.border}`, borderRadius: isDesktop ? 20 : 0, marginBottom: isDesktop ? 24 : 0 }}>
+        {!heroBg && <div style={{ position: "absolute", inset: 0, opacity: 0.04, backgroundImage: `repeating-linear-gradient(0deg,#fff 0,#fff 1px,transparent 1px,transparent 60px),repeating-linear-gradient(90deg,#fff 0,#fff 1px,transparent 1px,transparent 60px)` }} />}
+
+        {canEditMsg && (
+          <label style={{ position: "absolute", top: 12, right: 12, zIndex: 2, background: "#000000aa", border: "1px solid #ffffff33", color: "#fff", borderRadius: 9, padding: "6px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
+            {bgUploading ? "جاري الرفع..." : "🖼️ تغيير الخلفية"}
+            <input type="file" accept="image/*" onChange={e => changeBg(e.target.files?.[0])} style={{ display: "none" }} />
+          </label>
+        )}
+        {canEditMsg && heroBg && (
+          <button onClick={() => setHeroBg("")} style={{ position: "absolute", top: 12, right: 130, zIndex: 2, background: "#000000aa", border: "1px solid #ffffff33", color: "#fff", borderRadius: 9, padding: "6px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>إزالة</button>
+        )}
 
         <div style={{ display: "flex", gap: 24, flexDirection: isDesktop ? "row" : "column", alignItems: isDesktop ? "center" : "flex-start" }}>
           <div style={{ flex: 1 }}>

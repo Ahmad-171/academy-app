@@ -1,7 +1,18 @@
-// إذا رُفع شعار مخصص (src) نعرضه كصورة، وإلا نعرض الشعار الافتراضي (SVG).
+// إذا رُفع شعار مخصص (src) نعرضه داخل بطاقة بيضاء أنيقة بمقاس مضبوط
+// (يناسب الشعارات ذات الخلفية البيضاء أو الشفافة)، وإلا نعرض الشعار
+// الافتراضي (SVG).
 export function Logo({ size = 64, src }) {
   if (src) {
-    return <img src={src} alt="logo" width={size} height={size} style={{ objectFit: "contain", borderRadius: 12, display: "block" }} />;
+    return (
+      <div style={{
+        width: size, height: size, borderRadius: size * 0.22,
+        background: "#fff", padding: size * 0.08, boxSizing: "border-box",
+        display: "flex", alignItems: "center", justifyContent: "center",
+        boxShadow: "0 2px 10px #00000033", flexShrink: 0,
+      }}>
+        <img src={src} alt="logo" style={{ maxWidth: "100%", maxHeight: "100%", objectFit: "contain", display: "block" }} />
+      </div>
+    );
   }
   return (
     <svg width={size} height={size} viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">

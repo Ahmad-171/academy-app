@@ -4,6 +4,7 @@ import { COLORS } from "../constants/colors";
 import { useWindowSize } from "../hooks/useWindowSize";
 import { useToast } from "../hooks/useToast";
 import { Avatar, Badge, Modal, ToastMsg } from "../components/ui";
+import { ScanAttendance } from "./ScanAttendance";
 
 const today = () => new Date().toISOString().slice(0, 10);
 const fmtTime = (ts) => ts ? new Date(ts).toLocaleTimeString("ar-SA", { hour: "2-digit", minute: "2-digit" }) : "—";
@@ -22,6 +23,7 @@ export function AttendanceManager({ users, canEdit = true }) {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [editRow, setEditRow] = useState(null); // { id?, user_id, day, checkIn, checkOut }
+  const [scanning, setScanning] = useState(false);
   const { isDesktop } = useWindowSize();
   const { toast, show } = useToast();
 
@@ -92,11 +94,14 @@ export function AttendanceManager({ users, canEdit = true }) {
     <div>
       {toast && <ToastMsg msg={toast.msg} color={toast.color} />}
 
-      {/* وضعا العرض */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 18 }}>
+      {/* وضعا العرض + زر مسح الباركود */}
+      <div style={{ display: "flex", gap: 8, marginBottom: 18, flexWrap: "wrap", alignItems: "center" }}>
         {[{ id: "all", label: "📋 حضور اليوم — الكل" }, { id: "single", label: "👤 سجل لاعب" }].map(m => (
           <button key={m.id} onClick={() => setMode(m.id)} style={{ padding: "9px 18px", borderRadius: 20, background: mode === m.id ? COLORS.accent : COLORS.cardBg, border: `1px solid ${mode === m.id ? COLORS.accent : COLORS.border}`, color: mode === m.id ? "#000" : COLORS.textSecondary, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>{m.label}</button>
         ))}
+        {canEdit && (
+          <button onClick={() => setScanning(true)} style={{ marginRight: "auto", padding: "9px 18px", borderRadius: 20, background: COLORS.accentBlue, border: "none", color: "#fff", fontWeight: 800, fontSize: 12, cursor: "pointer" }}>📷 مسح باركود الحضور</button>
+        )}
       </div>
 
       {/* عرض الكل — اليوم */}
@@ -238,6 +243,15 @@ export function AttendanceManager({ users, canEdit = true }) {
             <button onClick={saveEdit} style={{ flex: 2, padding: "12px", borderRadius: 11, background: COLORS.accent, border: "none", color: "#000", fontWeight: 800, cursor: "pointer" }}>✅ حفظ الأوقات</button>
           </div>
         </Modal>
+      )}
+
+      {/* ماسح الباركود */}
+      {scanning && (
+        <ScanAttendance
+          players={people}
+          onClose={() => { setScanning(false); refresh(); }}
+          onRecorded={refresh}
+        />
       )}
     </div>
   );

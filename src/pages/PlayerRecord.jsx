@@ -3,6 +3,7 @@ import { supabase } from "../lib/supabase";
 import { COLORS } from "../constants/colors";
 import { useWindowSize } from "../hooks/useWindowSize";
 import { Avatar, Badge, MiniBar } from "../components/ui";
+import { QRCodeImage, attendanceToken } from "../components/QRCodeImage";
 
 const CRITERIA = [
   { label: "السرعة",         key: "speed",    color: COLORS.accent },
@@ -54,6 +55,19 @@ export function PlayerRecord({ player, title }) {
           <div style={{ display: "flex", gap: 8, marginTop: 6, flexWrap: "wrap" }}>
             <Badge text={player.status || "نشط"} color={player.status === "موقوف" ? COLORS.danger : COLORS.accent} />
             {player.subscription_end && <Badge text={`الاشتراك حتى ${player.subscription_end}`} color={COLORS.accentGold} />}
+          </div>
+        </div>
+      </div>
+
+      {/* باركود الحضور */}
+      <div style={{ background: COLORS.cardBg, border: `1px solid ${COLORS.accent}44`, borderRadius: 16, padding: 20, marginBottom: 20, display: "flex", alignItems: "center", gap: 18, flexWrap: "wrap" }}>
+        <div style={{ background: "#fff", padding: 10, borderRadius: 12 }}>
+          <QRCodeImage value={attendanceToken(player.id)} size={isDesktop ? 150 : 120} />
+        </div>
+        <div style={{ flex: 1, minWidth: 180 }}>
+          <div style={{ fontSize: 15, fontWeight: 800, color: COLORS.textPrimary, marginBottom: 6 }}>📲 باركود الحضور</div>
+          <div style={{ fontSize: 13, color: COLORS.textSecondary, lineHeight: 1.7 }}>
+            اعرض هذا الباركود للمدرب عند الوصول ليُسجّل حضورك تلقائيًا بمسحه بالكاميرا.
           </div>
         </div>
       </div>

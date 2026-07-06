@@ -381,7 +381,8 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
       <button onClick={() => { setNewProduct(EMPTY_PRODUCT); setProductModal(true); }} style={{ padding: "8px 16px", background: COLORS.accent, border: "none", color: "#000", borderRadius: 10, fontWeight: 800, fontSize: 12, cursor: "pointer" }}>+ منتج جديد</button>
     </div>
     <div style={{ background: COLORS.cardBg, border: `1px solid ${COLORS.border}`, borderRadius: 16, overflow: "hidden", marginBottom: 28 }}>
-      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+      <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+      <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 420 }}>
         <thead>
           <tr style={{ background: COLORS.surface }}>
             {["المنتج", "التصنيف", "السعر (ر.س)", "إجراء"].map((h, i) => (
@@ -422,6 +423,7 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
           )}
         </tbody>
       </table>
+      </div>
     </div>
 
     {/* أكواد الخصم */}
@@ -435,7 +437,8 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
         <button onClick={createCode} style={{ width: "100%", padding: "11px", background: COLORS.accent, border: "none", color: "#000", borderRadius: 10, fontWeight: 800, cursor: "pointer" }}>✅ إنشاء الكود</button>
       </div>
       <div style={{ background: COLORS.cardBg, border: `1px solid ${COLORS.border}`, borderRadius: 14, overflow: "hidden" }}>
-        <table style={{ width: "100%", borderCollapse: "collapse" }}>
+        <div style={{ overflowX: "auto", WebkitOverflowScrolling: "touch" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", minWidth: 460 }}>
           <thead>
             <tr style={{ background: COLORS.surface }}>
               {["الكود", "الخصم", "الاستخدام", "الحالة", "إجراء"].map((h, i) => (
@@ -468,6 +471,7 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
             )}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
 

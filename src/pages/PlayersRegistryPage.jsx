@@ -47,8 +47,8 @@ export function PlayersRegistryPage({ user, users, setUsers, loadData }) {
     if (!form.name.trim() || !form.id.trim()) {
       show("⚠️ الاسم ورقم الهوية مطلوبان", COLORS.warning); return;
     }
-    if (!/^\d{6,}$/.test(form.id.trim())) {
-      show("⚠️ رقم الهوية يجب أن يكون أرقامًا (6 خانات فأكثر)", COLORS.warning); return;
+    if (!/^\d{10,}$/.test(form.id.trim())) {
+      show("⚠️ رقم الهوية يجب أن يكون أرقامًا (10 خانات على الأقل)", COLORS.warning); return;
     }
     if (form.phone && !/^0?5\d{8}$/.test(form.phone.replace(/\s/g, ""))) {
       show("⚠️ رقم الجوال غير صحيح (مثال: 05xxxxxxxx)", COLORS.warning); return;

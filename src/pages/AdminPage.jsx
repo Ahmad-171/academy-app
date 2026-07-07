@@ -644,18 +644,6 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
             <Field label="الحالة" value={form.status || "نشط"} onChange={v => setForm(p => ({ ...p, status: v }))} options={["نشط", "موقوف", "معلق"]} />
           </div>
 
-          {/* حساب مخفي — لا يظهر في القوائم */}
-          <div onClick={() => setForm(p => ({ ...p, hidden: !p.hidden }))}
-            style={{ display: "flex", alignItems: "center", gap: 10, padding: "11px 14px", marginTop: 12, background: form.hidden ? COLORS.purple + "18" : COLORS.surface, border: `1px solid ${form.hidden ? COLORS.purple + "66" : COLORS.border}`, borderRadius: 11, cursor: "pointer" }}>
-            <div style={{ width: 20, height: 20, borderRadius: 5, background: form.hidden ? COLORS.purple : COLORS.surface, border: `1px solid ${form.hidden ? COLORS.purple : COLORS.border}`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
-              {form.hidden && <span style={{ color: "#fff", fontSize: 12, fontWeight: 900 }}>✓</span>}
-            </div>
-            <div>
-              <div style={{ fontSize: 13, fontWeight: 700, color: form.hidden ? COLORS.purple : COLORS.textPrimary }}>🕵️ حساب مخفي</div>
-              <div style={{ fontSize: 11, color: COLORS.textSecondary }}>لا يظهر في قوائم الحسابات والصلاحيات لأي أحد (يدخل ويعمل بشكل طبيعي)</div>
-            </div>
-          </div>
-
           {/* الصلاحيات */}
           {form.role !== "مدير" && (
             <div style={{ marginTop: 16, background: COLORS.surface, borderRadius: 12, padding: 16 }}>

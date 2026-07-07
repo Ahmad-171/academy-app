@@ -177,7 +177,6 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
           attendance: 0,
           medical: { health: "جيدة", injuries: "لا يوجد", allergies: "لا يوجد", medications: "لا يوجد" },
           ratings: { speed: 70, passing: 70, shooting: 70, defense: 70, spirit: 70 },
-          attendance_log: [false, false, false, false, false, false, false, false, false, false],
         },
       });
       if (error) { show(`⚠️ خطأ: ${error}`, COLORS.danger); return; }

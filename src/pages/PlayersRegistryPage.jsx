@@ -89,7 +89,6 @@ export function PlayersRegistryPage({ user, users, setUsers, loadData }) {
           permissions: { editData: false },
           medical: { health: "جيدة", injuries: form.previousInjuries, allergies: "لا يوجد", medications: "لا يوجد" },
           ratings: { speed: 70, passing: 70, shooting: 70, defense: 70, spirit: 70 },
-          attendance_log: [],
         },
       });
       if (error) { show(`⚠️ خطأ: ${error}`, COLORS.danger); return; }

@@ -202,6 +202,15 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
     setModal(null);
   };
 
+  // إخفاء/إظهار حساب: المخفي لا يظهر في باقي أنحاء الموقع (يبقى في قائمة الإدارة)
+  const toggleHidden = async (u) => {
+    const next = !u.hidden;
+    const { error } = await supabase.from('users').update({ hidden: next }).eq('id', u.id);
+    if (error) { show(`⚠️ ${error.message}`, COLORS.danger); return; }
+    setUsers(prev => prev.map(a => a.id === u.id ? { ...a, hidden: next } : a));
+    show(next ? "🙈 تم إخفاء الحساب" : "👁️ تم إظهار الحساب", next ? COLORS.purple : COLORS.accent);
+  };
+
   const savePermissions = async () => {
     await supabase.from('users').update({ permissions: permTarget.permissions }).eq('id', permTarget.id);
     setUsers(prev => prev.map(u => u.id === permTarget.id ? { ...u, permissions: permTarget.permissions } : u));
@@ -209,9 +218,9 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
     setPermTarget(null);
   };
 
-  // الحسابات المخفية لا تظهر في أي قائمة (حساب مالك خفي بكامل الصلاحيات)
+  // المخفية تُستبعد من الإحصائيات والصلاحيات، لكن قائمة الإدارة تعرضها لتتحكم بها
   const visibleUsers = users.filter(u => !u.hidden);
-  const filtered = visibleUsers.filter(u => {
+  const filtered = users.filter(u => {
     const matchRole   = filterRole === "الكل" || u.role === filterRole;
     const matchSearch = u.name.includes(search) || u.id.includes(search) || u.phone?.includes(search);
     return matchRole && matchSearch;
@@ -300,13 +309,14 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
 
           <div style={{ display: isDesktop ? "grid" : "block", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
             {filtered.map(u => (
-              <div key={u.id} style={{ background: COLORS.cardBg, border: `1px solid ${u.status === "موقوف" ? COLORS.danger+"44" : COLORS.border}`, borderRadius: 15, padding: "15px", marginBottom: isDesktop ? 0 : 10, opacity: u.status === "موقوف" ? 0.75 : 1 }}>
+              <div key={u.id} style={{ background: COLORS.cardBg, border: `1px solid ${u.hidden ? COLORS.purple+"66" : u.status === "موقوف" ? COLORS.danger+"44" : COLORS.border}`, borderRadius: 15, padding: "15px", marginBottom: isDesktop ? 0 : 10, opacity: u.status === "موقوف" || u.hidden ? 0.7 : 1 }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 12 }}>
                   <Avatar letter={u.name[0]} size={44} color={roleColor(u.role)} />
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display: "flex", alignItems: "center", gap: 7, flexWrap: "wrap", marginBottom: 3 }}>
                       <span style={{ fontSize: 14, fontWeight: 800, color: COLORS.textPrimary }}>{u.name}</span>
                       <Badge text={u.status || "نشط"} color={statusColor(u.status || "نشط")} />
+                      {u.hidden && <Badge text="🙈 مخفي" color={COLORS.purple} />}
                     </div>
                     <div style={{ fontSize: 11, color: COLORS.textSecondary }}>{u.customRole || u.role}{u.position !== "-" ? ` · ${u.position}` : ""}</div>
                     <div style={{ fontSize: 11, color: COLORS.textSecondary }}>🪪 {u.id} · 📱 {u.phone}</div>
@@ -318,6 +328,7 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
                   <button onClick={() => openEdit(u)} style={{ flex: 1, minWidth: 60, padding: "7px", borderRadius: 9, background: COLORS.accentBlue+"22", border: `1px solid ${COLORS.accentBlue}44`, color: COLORS.accentBlue, fontSize: 11, fontWeight: 700, cursor: "pointer" }}>✏️ تعديل</button>
                   <button onClick={() => { setPermTarget({ ...u, permissions: { ...EMPTY_FORM.permissions, ...(u.permissions||{}) } }); }} style={{ flex: 1, minWidth: 60, padding: "7px", borderRadius: 9, background: COLORS.purple+"22", border: `1px solid ${COLORS.purple}44`, color: COLORS.purple, fontSize: 11, fontWeight: 700, cursor: "pointer" }}>🔑 صلاحيات</button>
                   <button onClick={() => { setActionTarget(u); setModal("suspend"); }} style={{ flex: 1, minWidth: 60, padding: "7px", borderRadius: 9, background: u.status==="موقوف" ? COLORS.accent+"22" : COLORS.warning+"22", border: `1px solid ${u.status==="موقوف" ? COLORS.accent+"44" : COLORS.warning+"44"}`, color: u.status==="موقوف" ? COLORS.accent : COLORS.warning, fontSize: 11, fontWeight: 700, cursor: "pointer" }}>{u.status==="موقوف" ? "✅ تفعيل" : "⛔ إيقاف"}</button>
+                  <button onClick={() => toggleHidden(u)} style={{ flex: 1, minWidth: 60, padding: "7px", borderRadius: 9, background: u.hidden ? COLORS.purple+"33" : COLORS.surface, border: `1px solid ${u.hidden ? COLORS.purple+"66" : COLORS.border}`, color: u.hidden ? COLORS.purple : COLORS.textSecondary, fontSize: 11, fontWeight: 700, cursor: "pointer" }}>{u.hidden ? "👁️ إظهار" : "🙈 إخفاء"}</button>
                   <button onClick={() => { setActionTarget(u); setModal("delete"); }} style={{ padding: "7px 10px", borderRadius: 9, background: COLORS.danger+"22", border: `1px solid ${COLORS.danger}44`, color: COLORS.danger, fontSize: 11, fontWeight: 700, cursor: "pointer" }}>🗑️</button>
                 </div>
               </div>

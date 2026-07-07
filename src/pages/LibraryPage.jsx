@@ -2,6 +2,7 @@ import { useState } from "react";
 import { supabase } from "../lib/supabase";
 import { uploadMedia } from "../lib/media";
 import { COLORS } from "../constants/colors";
+import { isManager } from "../constants/data";
 import { useWindowSize } from "../hooks/useWindowSize";
 import { useToast } from "../hooks/useToast";
 import { Badge, Modal, Field, ToastMsg } from "../components/ui";
@@ -15,7 +16,7 @@ export function LibraryPage({ user, library, setLibrary }) {
   const { isDesktop } = useWindowSize();
   const { toast, show } = useToast();
 
-  const canAdd = user.role === "مدير" || user.permissions?.editLibrary;
+  const canAdd = isManager(user) || user.permissions?.editLibrary;
   const cats = ["الكل", "تدريب", "مباراة", "هدف", "إنجاز"];
   const filtered = category === "الكل" ? library : library.filter(i => i.category === category);
 

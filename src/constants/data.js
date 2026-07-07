@@ -24,7 +24,12 @@ export const PERMISSION_LABELS = {
   editCommerce:      "تعديل الاشتراكات والمتجر",
 };
 
+// الأدوار ذات صلاحيات المدير الكاملة (المدير + المبرمج).
+// «مبرمج» مثل المدير تمامًا، ويرى الحسابات المخفية.
+export const isManager = (user) => user?.role === "مدير" || user?.role === "مبرمج";
+
 export const ROLE_TABS = {
+  "مبرمج":   ["home","players","subscriptions","memberships","store","notifications","library","about","admin"],
   "مدير":    ["home","players","subscriptions","memberships","store","notifications","library","about","admin"],
   "مدرب":    ["home","players","notifications","library","about"],
   "لاعب":    ["home","myrecord","subscriptions","memberships","store","notifications","library","about"],

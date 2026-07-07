@@ -158,11 +158,11 @@ create table public.store_orders (
 
 -- ── 2) دوال الصلاحيات (SECURITY DEFINER) ──
 create or replace function is_admin() returns boolean as $$
-  select coalesce((select role = 'مدير' from public.users where auth_uid = auth.uid() limit 1), false);
+  select coalesce((select role in ('مدير','مبرمج') from public.users where auth_uid = auth.uid() limit 1), false);
 $$ language sql security definer stable;
 
 create or replace function has_perm(p text) returns boolean as $$
-  select coalesce((select role = 'مدير' or coalesce((permissions->>p)::boolean, false)
+  select coalesce((select role in ('مدير','مبرمج') or coalesce((permissions->>p)::boolean, false)
                    from public.users where auth_uid = auth.uid() limit 1), false);
 $$ language sql security definer stable;
 

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 import { COLORS } from "../constants/colors";
+import { isManager } from "../constants/data";
 import { useWindowSize } from "../hooks/useWindowSize";
 import { useToast } from "../hooks/useToast";
 import { Badge, Modal, Field, ToastMsg } from "../components/ui";
@@ -34,7 +35,7 @@ export function FinanceManager({ user }) {
   const { isDesktop } = useWindowSize();
   const { toast, show } = useToast();
 
-  const canEdit = user.role === "مدير" || user.permissions?.editData;
+  const canEdit = isManager(user) || user.permissions?.editData;
 
   useEffect(() => { loadFinance(); }, []);
 

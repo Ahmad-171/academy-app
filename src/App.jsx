@@ -3,7 +3,7 @@ import { supabase } from "./lib/supabase";
 import { currentUserFromSession, signOut as authSignOut, onAuthChange } from "./lib/auth";
 import { COLORS } from "./constants/colors";
 import { BRAND_NAME, BRAND_TAGLINE } from "./constants/brand";
-import { ROLE_TABS, ALL_TABS, SUBSCRIPTION_PLANS } from "./constants/data";
+import { ROLE_TABS, ALL_TABS, SUBSCRIPTION_PLANS, isManager } from "./constants/data";
 import { useWindowSize } from "./hooks/useWindowSize";
 import { Avatar } from "./components/ui";
 import { Logo } from "./components/Logo";
@@ -144,7 +144,7 @@ export default function App() {
   const handleLogin  = (user) => { setCurrentUser(user); setActive("home"); loadData(); };
   const handleLogout = async () => { await authSignOut(); setCurrentUser(null); setUsers([]); setActive("home"); };
   // من يحمل صلاحية إدارية يشوف تبويب الإدارة حتى لو ما كان مديرًا
-  const hasAdminAccess = liveUser?.role === "مدير" || ADMIN_PERMS.some(k => liveUser?.permissions?.[k]);
+  const hasAdminAccess = isManager(liveUser) || ADMIN_PERMS.some(k => liveUser?.permissions?.[k]);
   const allowedIds = [...(ROLE_TABS[liveUser?.role] || [])];
   if (hasAdminAccess && !allowedIds.includes("admin")) allowedIds.push("admin");
   const myTabs = ALL_TABS.filter(t => allowedIds.includes(t.id));

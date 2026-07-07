@@ -2,7 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { supabase } from "../lib/supabase";
 import { createAccount } from "../lib/auth";
 import { COLORS } from "../constants/colors";
-import { PERMISSION_LABELS } from "../constants/data";
+import { PERMISSION_LABELS, isManager } from "../constants/data";
 import { useWindowSize } from "../hooks/useWindowSize";
 import { useToast } from "../hooks/useToast";
 import { StatCard, Avatar, Badge, MiniBar, Modal, Field, ToastMsg } from "../components/ui";
@@ -15,8 +15,10 @@ const EMPTY_PRODUCT = { name: "", price: "", category: "ملابس", img: "👕"
 const EMPTY_CODE = { code: "", percent: "", maxUses: "" };
 
 export function AdminPage({ user, users, setUsers, products, setProducts, loadData, subscriptionPlans, saveSubscriptionPlans }) {
-  const isAdmin = user.role === "مدير";
+  const isAdmin = isManager(user);
   const can = (perm) => isAdmin || !!user.permissions?.[perm];
+  // حساب المبرمج فقط يرى الحسابات المخفية ويتحكم في إخفائها/إظهارها
+  const canSeeHidden = user.role === "مبرمج";
 
   const TABS = [
     { id: "overview",    label: "📊 لوحة التحكم",        show: isAdmin },
@@ -217,9 +219,9 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
     setPermTarget(null);
   };
 
-  // المخفية تُستبعد من الإحصائيات والصلاحيات، لكن قائمة الإدارة تعرضها لتتحكم بها
-  const visibleUsers = users.filter(u => !u.hidden);
-  const filtered = users.filter(u => {
+  // المبرمج يرى الكل بما فيها المخفية؛ غيره لا يرى المخفية إطلاقًا
+  const visibleUsers = canSeeHidden ? users : users.filter(u => !u.hidden);
+  const filtered = visibleUsers.filter(u => {
     const matchRole   = filterRole === "الكل" || u.role === filterRole;
     const matchSearch = u.name.includes(search) || u.id.includes(search) || u.phone?.includes(search);
     return matchRole && matchSearch;
@@ -229,7 +231,7 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
   const coaches  = visibleUsers.filter(u => u.role === "مدرب");
   const avgAtt   = players.length ? Math.round(players.reduce((s, p) => s + (p.attendance || 0), 0) / players.length) : 0;
   const statusColor = s => s === "موقوف" ? COLORS.danger : s === "معلق" ? COLORS.warning : COLORS.accent;
-  const roleColor   = r => r === "مدير" ? COLORS.purple : r === "مدرب" ? COLORS.accentGold : r === "ولي أمر" ? COLORS.accentBlue : COLORS.accent;
+  const roleColor   = r => (r === "مدير" || r === "مبرمج") ? COLORS.purple : r === "مدرب" ? COLORS.accentGold : r === "ولي أمر" ? COLORS.accentBlue : COLORS.accent;
 
   return (
     <div style={{ padding: isDesktop ? "32px" : "16px" }}>
@@ -327,7 +329,7 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
                   <button onClick={() => openEdit(u)} style={{ flex: 1, minWidth: 60, padding: "7px", borderRadius: 9, background: COLORS.accentBlue+"22", border: `1px solid ${COLORS.accentBlue}44`, color: COLORS.accentBlue, fontSize: 11, fontWeight: 700, cursor: "pointer" }}>✏️ تعديل</button>
                   <button onClick={() => { setPermTarget({ ...u, permissions: { ...EMPTY_FORM.permissions, ...(u.permissions||{}) } }); }} style={{ flex: 1, minWidth: 60, padding: "7px", borderRadius: 9, background: COLORS.purple+"22", border: `1px solid ${COLORS.purple}44`, color: COLORS.purple, fontSize: 11, fontWeight: 700, cursor: "pointer" }}>🔑 صلاحيات</button>
                   <button onClick={() => { setActionTarget(u); setModal("suspend"); }} style={{ flex: 1, minWidth: 60, padding: "7px", borderRadius: 9, background: u.status==="موقوف" ? COLORS.accent+"22" : COLORS.warning+"22", border: `1px solid ${u.status==="موقوف" ? COLORS.accent+"44" : COLORS.warning+"44"}`, color: u.status==="موقوف" ? COLORS.accent : COLORS.warning, fontSize: 11, fontWeight: 700, cursor: "pointer" }}>{u.status==="موقوف" ? "✅ تفعيل" : "⛔ إيقاف"}</button>
-                  {(u.is_demo || u.hidden) && (
+                  {canSeeHidden && (
                     <button onClick={() => toggleHidden(u)} style={{ flex: 1, minWidth: 60, padding: "7px", borderRadius: 9, background: u.hidden ? COLORS.purple+"33" : COLORS.surface, border: `1px solid ${u.hidden ? COLORS.purple+"66" : COLORS.border}`, color: u.hidden ? COLORS.purple : COLORS.textSecondary, fontSize: 11, fontWeight: 700, cursor: "pointer" }}>{u.hidden ? "👁️ إظهار" : "🙈 إخفاء"}</button>
                   )}
                   <button onClick={() => { setActionTarget(u); setModal("delete"); }} style={{ padding: "7px 10px", borderRadius: 9, background: COLORS.danger+"22", border: `1px solid ${COLORS.danger}44`, color: COLORS.danger, fontSize: 11, fontWeight: 700, cursor: "pointer" }}>🗑️</button>
@@ -343,7 +345,7 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
         <div>
           <div style={{ fontSize: 14, color: COLORS.textSecondary, marginBottom: 16 }}>اختر حساباً لتعديل صلاحياته المخصصة</div>
           <div style={{ display: isDesktop ? "grid" : "block", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            {visibleUsers.filter(u => u.role !== "مدير").map(u => (
+            {visibleUsers.filter(u => u.role !== "مدير" && u.role !== "مبرمج").map(u => (
               <div key={u.id} style={{ background: COLORS.cardBg, border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: "14px 16px", marginBottom: isDesktop ? 0 : 10, cursor: "pointer" }}
                 onClick={() => setPermTarget({ ...u, permissions: { ...EMPTY_FORM.permissions, ...(u.permissions||{}) } })}>
                 <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 10 }}>

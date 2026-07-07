@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { supabase } from "../lib/supabase";
 import { COLORS } from "../constants/colors";
+import { isManager } from "../constants/data";
 import { useWindowSize } from "../hooks/useWindowSize";
 import { useToast } from "../hooks/useToast";
 import { Modal, Field, ToastMsg } from "../components/ui";
@@ -26,7 +27,7 @@ export function NotificationsPage({ user, notifications, setNotifications }) {
   const { isDesktop } = useWindowSize();
   const { toast, show } = useToast();
 
-  const canManage = user.role === "مدير" || user.permissions?.sendNotifications;
+  const canManage = isManager(user) || user.permissions?.sendNotifications;
   const icons  = { match: "⚽", absence: "❌", payment: "💳", award: "⭐", training: "🏃", general: "📢" };
   const colors = { match: COLORS.warning, absence: COLORS.danger, payment: COLORS.accentBlue, award: COLORS.accentGold, training: COLORS.accent, general: COLORS.purple };
 

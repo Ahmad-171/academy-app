@@ -2,7 +2,7 @@ import { useState } from "react";
 import { supabase } from "../lib/supabase";
 import { createAccount } from "../lib/auth";
 import { COLORS } from "../constants/colors";
-import { PLAYER_CATEGORIES } from "../constants/data";
+import { PLAYER_CATEGORIES, isManager } from "../constants/data";
 import { useWindowSize } from "../hooks/useWindowSize";
 import { useToast } from "../hooks/useToast";
 import { Avatar, Badge, Modal, Field, ToastMsg } from "../components/ui";
@@ -24,7 +24,7 @@ export function PlayersRegistryPage({ user, users, setUsers, loadData }) {
   const { isDesktop } = useWindowSize();
   const { toast, show } = useToast();
 
-  const canEdit = user.role === "مدير" || user.permissions?.editData;
+  const canEdit = isManager(user) || user.permissions?.editData;
 
   const players = users.filter(u => u.role === "لاعب").filter(p =>
     !search || p.name.includes(search) || p.id.includes(search) || (p.membershipNumber || p.membership_number || "").includes(search)

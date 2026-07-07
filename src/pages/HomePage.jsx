@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { uploadMedia } from "../lib/media";
 import { COLORS } from "../constants/colors";
+import { isManager } from "../constants/data";
 import { BRAND_NAME, BRAND_TAGLINE } from "../constants/brand";
 import { useWindowSize } from "../hooks/useWindowSize";
 import { StatCard, Avatar, Badge } from "../components/ui";
@@ -20,7 +21,7 @@ export function HomePage({ onNav, user, users, notifications = [], directorMsg, 
 
   const players = users.filter(u => u.role === "لاعب");
   const coaches = users.filter(u => u.role === "مدرب");
-  const canEditMsg = user.role === "مدير";
+  const canEditMsg = isManager(user);
 
   // أخبار الصفحة الرئيسية: الفعاليات/الرسائل المعلّمة للظهور هنا والمستهدِفة لدور المستخدم
   const notifColors = NOTIF_COLORS(COLORS);

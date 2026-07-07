@@ -6,7 +6,10 @@ import { useWindowSize } from "../hooks/useWindowSize";
 import { StatCard, Avatar, Badge } from "../components/ui";
 import { Logo } from "../components/Logo";
 
-export function HomePage({ onNav, user, users, directorMsg, setDirectorMsg, heroBg, setHeroBg, logoUrl, setLogo }) {
+const NOTIF_ICONS  = { match: "⚽", absence: "❌", payment: "💳", award: "⭐", training: "🏃", general: "📢" };
+const NOTIF_COLORS = (C) => ({ match: C.warning, absence: C.danger, payment: C.accentBlue, award: C.accentGold, training: C.accent, general: C.purple });
+
+export function HomePage({ onNav, user, users, notifications = [], directorMsg, setDirectorMsg, heroBg, setHeroBg, logoUrl, setLogo }) {
   const [visible, setVisible] = useState(false);
   const [editMsg, setEditMsg] = useState(false);
   const [tempMsg, setTempMsg] = useState(directorMsg);
@@ -17,8 +20,13 @@ export function HomePage({ onNav, user, users, directorMsg, setDirectorMsg, hero
 
   const players = users.filter(u => u.role === "لاعب");
   const coaches = users.filter(u => u.role === "مدرب");
-  const avgAtt  = players.length ? Math.round(players.reduce((s, p) => s + p.attendance, 0) / players.length) : 0;
   const canEditMsg = user.role === "مدير";
+
+  // أخبار الصفحة الرئيسية: الفعاليات/الرسائل المعلّمة للظهور هنا والمستهدِفة لدور المستخدم
+  const notifColors = NOTIF_COLORS(COLORS);
+  const homeNews = notifications
+    .filter(n => n.show_on_home && (n.roles?.includes(user.role) ?? true))
+    .slice(0, 6);
 
   const changeBg = async (file) => {
     if (!file) return;
@@ -104,12 +112,39 @@ export function HomePage({ onNav, user, users, directorMsg, setDirectorMsg, hero
 
       {/* إحصائيات حقيقية */}
       <div style={{ padding: isDesktop ? "0" : "16px 16px 0" }}>
-        <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(4,1fr)" : "repeat(2,1fr)", gap: 12, marginBottom: 22 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 12, marginBottom: 22 }}>
           <StatCard label="لاعب مسجل" value={String(players.length)} icon="⚽" color={COLORS.accent} sub={`${players.filter(p => p.status !== "موقوف").length} نشط`} />
           <StatCard label="مدرب" value={String(coaches.length)} icon="🏅" color={COLORS.accentGold} sub="في الأكاديمية" />
-          <StatCard label="متوسط الحضور" value={`${avgAtt}٪`} icon="📊" color={COLORS.accentBlue} sub="هذا الموسم" />
-          <StatCard label="ولي أمر" value={String(users.filter(u => u.role === "ولي أمر").length)} icon="👨‍👦" color={COLORS.purple} sub="مسجل" />
         </div>
+
+        {/* خانة الأخبار — من الفعاليات والرسائل */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+          <div style={{ fontSize: 16, fontWeight: 800, color: COLORS.textPrimary }}>📢 آخر الأخبار</div>
+          <button onClick={() => onNav("notifications")} style={{ background: "none", border: "none", color: COLORS.accent, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>عرض الكل ←</button>
+        </div>
+        {homeNews.length === 0 ? (
+          <div style={{ background: COLORS.cardBg, border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: "26px 20px", textAlign: "center", color: COLORS.textSecondary, fontSize: 13, marginBottom: 22 }}>
+            لا توجد أخبار منشورة حاليًا
+          </div>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(2,1fr)" : "1fr", gap: 12, marginBottom: 22 }}>
+            {homeNews.map(n => {
+              const c = notifColors[n.type] || COLORS.accent;
+              return (
+                <div key={n.id} style={{ background: COLORS.cardBg, border: `1px solid ${c}33`, borderRight: `4px solid ${c}`, borderRadius: 14, padding: "14px 16px", display: "flex", gap: 12, alignItems: "flex-start" }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 11, background: `${c}22`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, flexShrink: 0 }}>{NOTIF_ICONS[n.type] || "📢"}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, color: COLORS.textPrimary, lineHeight: 1.6 }}>{n.msg}</div>
+                    <div style={{ display: "flex", gap: 8, marginTop: 5, flexWrap: "wrap" }}>
+                      <span style={{ fontSize: 11, color: COLORS.textSecondary }}>{n.time}</span>
+                      {n.sender && <span style={{ fontSize: 11, color: c }}>· {n.sender}</span>}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
 
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
           <button onClick={() => onNav("subscriptions")} style={{ padding: "12px 20px", background: `${COLORS.accent}18`, border: `1px solid ${COLORS.accent}44`, color: COLORS.accent, borderRadius: 12, fontWeight: 800, fontSize: 13, cursor: "pointer" }}>💳 الاشتراكات</button>

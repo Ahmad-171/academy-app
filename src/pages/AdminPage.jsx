@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { supabase } from "../lib/supabase";
+import { createAccount } from "../lib/auth";
 import { COLORS } from "../constants/colors";
 import { PERMISSION_LABELS } from "../constants/data";
 import { useWindowSize } from "../hooks/useWindowSize";
@@ -129,15 +130,18 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
   const openEdit = (u) => { setForm({ ...EMPTY_FORM, ...u, permissions: { ...EMPTY_FORM.permissions, ...(u.permissions || {}) } }); setEditId(u.id); setModal("form"); };
 
   const saveAccount = async () => {
-    if (!form.name?.trim() || !form.id?.trim() || !form.password?.trim()) {
-      show("⚠️ الاسم ورقم الهوية وكلمة السر مطلوبة", COLORS.warning); return;
+    if (!form.name?.trim() || !form.id?.trim()) {
+      show("⚠️ الاسم ورقم الهوية مطلوبان", COLORS.warning); return;
     }
-    if (!editId && users.find(u => u.id === form.id)) {
-      show("⚠️ رقم الهوية مستخدم مسبقاً", COLORS.warning); return;
+    if (!/^\d{6,}$/.test(form.id.trim())) {
+      show("⚠️ رقم الهوية يجب أن يكون أرقامًا (6 خانات فأكثر)", COLORS.warning); return;
     }
-    const newUserData = {
-      id: form.id,
-      password: form.password,
+    if (form.phone && !/^0?5\d{8}$/.test(form.phone.replace(/\s/g, ""))) {
+      show("⚠️ رقم الجوال غير صحيح (مثال: 05xxxxxxxx)", COLORS.warning); return;
+    }
+
+    // الحقول المشتركة القابلة للتعديل
+    const profile = {
       role: form.role,
       custom_role: form.customRole || form.role,
       name: form.name,
@@ -145,25 +149,37 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
       membership: form.membership || '-',
       status: form.status || 'نشط',
       position: form.position || '-',
-      points: 0,
-      attendance: 0,
       child_id: form.childId || null,
       coach_id: form.coachId || null,
       permissions: form.permissions || {},
-      medical: { health: "جيدة", injuries: "لا يوجد", allergies: "لا يوجد", medications: "لا يوجد" },
-      ratings: { speed: 70, passing: 70, shooting: 70, defense: 70, spirit: 70 },
-      attendance_log: [false, false, false, false, false, false, false, false, false, false],    };
+    };
 
     if (editId) {
-      await supabase.from('users').update({
-        ...newUserData,
-        points: form.points,
-        attendance: form.attendance,
-      }).eq('id', editId);
+      const { error } = await supabase.from('users')
+        .update({ ...profile, points: form.points, attendance: form.attendance })
+        .eq('id', editId);
+      if (error) { show(`⚠️ خطأ: ${error.message}`, COLORS.danger); return; }
       show("✅ تم تحديث الحساب");
     } else {
-      const { error } = await supabase.from('users').insert(newUserData);
-      if (error) { show(`⚠️ خطأ: ${error.message}`, COLORS.danger); return; }
+      if (!form.password?.trim() || form.password.trim().length < 4) {
+        show("⚠️ كلمة السر مطلوبة (4 خانات فأكثر)", COLORS.warning); return;
+      }
+      if (users.find(u => u.id === form.id)) {
+        show("⚠️ رقم الهوية مستخدم مسبقاً", COLORS.warning); return;
+      }
+      const { error } = await createAccount({
+        id: form.id.trim(),
+        password: form.password.trim(),
+        profile: {
+          ...profile,
+          points: 0,
+          attendance: 0,
+          medical: { health: "جيدة", injuries: "لا يوجد", allergies: "لا يوجد", medications: "لا يوجد" },
+          ratings: { speed: 70, passing: 70, shooting: 70, defense: 70, spirit: 70 },
+          attendance_log: [false, false, false, false, false, false, false, false, false, false],
+        },
+      });
+      if (error) { show(`⚠️ خطأ: ${error}`, COLORS.danger); return; }
       show("✅ تم إضافة الحساب");
     }
     await loadData();

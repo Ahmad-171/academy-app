@@ -16,6 +16,15 @@ const TERMS = [
   "لا يُفعَّل الحساب بشكل كامل إلا بعد التوقيع الإلكتروني على هذه الشروط.",
 ];
 
+const PRIVACY = [
+  "نجمع البيانات اللازمة فقط لإدارة العضوية: الاسم، رقم الهوية، رقم الجوال، تاريخ الميلاد، وبيانات ولي الأمر.",
+  "تُستخدم البيانات الصحية لضمان سلامة اللاعب أثناء التدريب، ولا يطّلع عليها إلا الإدارة والطاقم الطبي.",
+  "لا نبيع أو نشارك بياناتك مع أي جهة خارجية لأغراض تسويقية.",
+  "كلمات السر محفوظة بشكل مشفّر عبر نظام مصادقة آمن، ولا يستطيع أحد الاطلاع عليها.",
+  "يحق لك طلب تعديل أو حذف بياناتك بالتواصل مع إدارة الأكاديمية.",
+  "تُحفظ بيانات اللاعب طوال مدة العضوية وتُحذف عند الطلب أو بعد انتهاء العلاقة بفترة معقولة.",
+];
+
 export function AboutPage({ user, setUsers }) {
   const [checked, setChecked] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -70,6 +79,15 @@ export function AboutPage({ user, setUsers }) {
             </button>
           </>
         )}
+
+        {/* سياسة الخصوصية وحماية البيانات */}
+        <div style={{ background: COLORS.cardBg, border: `1px solid ${COLORS.border}`, borderRadius: 16, padding: 22, marginTop: 20 }}>
+          <div style={{ fontSize: 16, fontWeight: 800, color: COLORS.textPrimary, marginBottom: 6 }}>🔒 سياسة الخصوصية وحماية البيانات</div>
+          <div style={{ fontSize: 12, color: COLORS.textSecondary, marginBottom: 14 }}>كيف نجمع بياناتك ونحميها</div>
+          {PRIVACY.map((t, i) => (
+            <div key={i} style={{ fontSize: 13, color: COLORS.textSecondary, marginBottom: 10, paddingRight: 14, borderRight: `2px solid ${COLORS.accent}55`, lineHeight: 1.7 }}>{t}</div>
+          ))}
+        </div>
       </div>
     </div>
   );

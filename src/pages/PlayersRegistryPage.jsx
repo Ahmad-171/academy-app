@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { supabase } from "../lib/supabase";
+import { createAccount } from "../lib/auth";
 import { COLORS } from "../constants/colors";
 import { PLAYER_CATEGORIES } from "../constants/data";
 import { useWindowSize } from "../hooks/useWindowSize";
@@ -43,11 +44,14 @@ export function PlayersRegistryPage({ user, users, setUsers, loadData }) {
   };
 
   const savePlayer = async () => {
-    if (!form.name.trim() || !form.id.trim() || (!editId && !form.password.trim())) {
-      show("⚠️ الاسم ورقم الهوية وكلمة السر مطلوبة", COLORS.warning); return;
+    if (!form.name.trim() || !form.id.trim()) {
+      show("⚠️ الاسم ورقم الهوية مطلوبان", COLORS.warning); return;
     }
-    if (!editId && users.find(u => u.id === form.id)) {
-      show("⚠️ رقم الهوية مستخدم مسبقاً", COLORS.warning); return;
+    if (!/^\d{6,}$/.test(form.id.trim())) {
+      show("⚠️ رقم الهوية يجب أن يكون أرقامًا (6 خانات فأكثر)", COLORS.warning); return;
+    }
+    if (form.phone && !/^0?5\d{8}$/.test(form.phone.replace(/\s/g, ""))) {
+      show("⚠️ رقم الجوال غير صحيح (مثال: 05xxxxxxxx)", COLORS.warning); return;
     }
 
     const fields = {
@@ -71,15 +75,24 @@ export function PlayersRegistryPage({ user, users, setUsers, loadData }) {
       }).eq('id', editId);
       show("✅ تم تحديث بيانات اللاعب");
     } else {
-      const { error } = await supabase.from('users').insert({
-        id: form.id, password: form.password, role: "لاعب", custom_role: "لاعب",
-        ...fields, membership: "-", status: "نشط", points: 0, attendance: 0,
-        permissions: { editData: false },
-        medical: { health: "جيدة", injuries: form.previousInjuries, allergies: "لا يوجد", medications: "لا يوجد" },
-        ratings: { speed: 70, passing: 70, shooting: 70, defense: 70, spirit: 70 },
-        attendance_log: [],
+      if (!form.password.trim() || form.password.trim().length < 4) {
+        show("⚠️ كلمة السر مطلوبة (4 خانات فأكثر)", COLORS.warning); return;
+      }
+      if (users.find(u => u.id === form.id)) {
+        show("⚠️ رقم الهوية مستخدم مسبقاً", COLORS.warning); return;
+      }
+      const { error } = await createAccount({
+        id: form.id.trim(), password: form.password.trim(),
+        profile: {
+          role: "لاعب", custom_role: "لاعب",
+          ...fields, membership: "-", status: "نشط", points: 0, attendance: 0,
+          permissions: { editData: false },
+          medical: { health: "جيدة", injuries: form.previousInjuries, allergies: "لا يوجد", medications: "لا يوجد" },
+          ratings: { speed: 70, passing: 70, shooting: 70, defense: 70, spirit: 70 },
+          attendance_log: [],
+        },
       });
-      if (error) { show(`⚠️ خطأ: ${error.message}`, COLORS.danger); return; }
+      if (error) { show(`⚠️ خطأ: ${error}`, COLORS.danger); return; }
       show("✅ تم تسجيل اللاعب");
     }
     await loadData();

@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { supabase } from "./lib/supabase";
+import { currentUserFromSession, signOut as authSignOut, onAuthChange } from "./lib/auth";
 import { COLORS } from "./constants/colors";
 import { BRAND_NAME, BRAND_TAGLINE } from "./constants/brand";
 import { ROLE_TABS, ALL_TABS, SUBSCRIPTION_PLANS } from "./constants/data";
@@ -35,13 +36,11 @@ export default function App() {
   const [heroBg, setHeroBg]               = useState("");
   const [logoUrl, setLogoUrl]             = useState("");
   const [loading, setLoading]             = useState(true);
-  const [loadError, setLoadError]         = useState(null);
   const { isDesktop }                     = useWindowSize();
 
   // ── تحميل البيانات من Supabase ──
   const loadData = useCallback(async () => {
     setLoading(true);
-    setLoadError(null);
     try {
       const [
         usersRes,
@@ -63,7 +62,6 @@ export default function App() {
         .map(r => r.error).find(Boolean);
       if (firstError) {
         console.error('Supabase load error:', firstError);
-        setLoadError(firstError.message || 'تعذّر الاتصال بقاعدة البيانات');
       }
 
       const { data: usersData } = usersRes;
@@ -96,12 +94,26 @@ export default function App() {
       }
     } catch (err) {
       console.error('Error loading data:', err);
-      setLoadError(err.message || 'تعذّر الاتصال بقاعدة البيانات');
     }
     setLoading(false);
   }, []);
 
-  useEffect(() => { loadData(); }, [loadData]);
+  // استعادة الجلسة عند فتح الموقع: إن كان هناك تسجيل دخول سابق نحمّل بياناته،
+  // وإلا نعرض صفحة الدخول. لا نجلب أي بيانات قبل المصادقة.
+  useEffect(() => {
+    let alive = true;
+    (async () => {
+      const user = await currentUserFromSession();
+      if (!alive) return;
+      if (user) { setCurrentUser(user); await loadData(); }
+      else setLoading(false);
+    })();
+    // تنظيف الحالة عند تسجيل الخروج من أي مكان
+    const { data: sub } = onAuthChange((session) => {
+      if (!session) { setCurrentUser(null); setUsers([]); }
+    });
+    return () => { alive = false; sub?.subscription?.unsubscribe(); };
+  }, [loadData]);
 
   // ── حفظ رسالة المدير ──
   const saveDirectorMsg = async (msg) => {
@@ -129,8 +141,8 @@ export default function App() {
 
   const liveUser = currentUser ? users.find(u => u.id === currentUser.id) || currentUser : null;
 
-  const handleLogin  = (user) => { setCurrentUser(user); setActive("home"); };
-  const handleLogout = () => { setCurrentUser(null); setActive("home"); };
+  const handleLogin  = (user) => { setCurrentUser(user); setActive("home"); loadData(); };
+  const handleLogout = async () => { await authSignOut(); setCurrentUser(null); setUsers([]); setActive("home"); };
   // من يحمل صلاحية إدارية يشوف تبويب الإدارة حتى لو ما كان مديرًا
   const hasAdminAccess = liveUser?.role === "مدير" || ADMIN_PERMS.some(k => liveUser?.permissions?.[k]);
   const allowedIds = [...(ROLE_TABS[liveUser?.role] || [])];
@@ -163,7 +175,7 @@ export default function App() {
     </div>
   );
 
-  if (!liveUser) return <LoginPage onLogin={handleLogin} users={users} loadError={loadError} logoUrl={logoUrl} />;
+  if (!liveUser) return <LoginPage onLogin={handleLogin} logoUrl={logoUrl} />;
 
   return (
     <div style={{ minHeight: "100vh", background: COLORS.darkBg, fontFamily: "'Cairo',sans-serif", direction: "rtl", color: COLORS.textPrimary, overflowX: "hidden" }}>

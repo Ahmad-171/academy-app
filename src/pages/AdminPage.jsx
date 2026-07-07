@@ -161,8 +161,8 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
       if (error) { show(`⚠️ خطأ: ${error.message}`, COLORS.danger); return; }
       show("✅ تم تحديث الحساب");
     } else {
-      if (!form.password?.trim() || form.password.trim().length < 4) {
-        show("⚠️ كلمة السر مطلوبة (4 خانات فأكثر)", COLORS.warning); return;
+      if (!form.password?.trim() || form.password.trim().length < 6) {
+        show("⚠️ كلمة السر مطلوبة (6 خانات على الأقل)", COLORS.warning); return;
       }
       if (users.find(u => u.id === form.id)) {
         show("⚠️ رقم الهوية مستخدم مسبقاً", COLORS.warning); return;

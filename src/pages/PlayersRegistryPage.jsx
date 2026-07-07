@@ -75,8 +75,8 @@ export function PlayersRegistryPage({ user, users, setUsers, loadData }) {
       }).eq('id', editId);
       show("✅ تم تحديث بيانات اللاعب");
     } else {
-      if (!form.password.trim() || form.password.trim().length < 4) {
-        show("⚠️ كلمة السر مطلوبة (4 خانات فأكثر)", COLORS.warning); return;
+      if (!form.password.trim() || form.password.trim().length < 6) {
+        show("⚠️ كلمة السر مطلوبة (6 خانات على الأقل)", COLORS.warning); return;
       }
       if (users.find(u => u.id === form.id)) {
         show("⚠️ رقم الهوية مستخدم مسبقاً", COLORS.warning); return;

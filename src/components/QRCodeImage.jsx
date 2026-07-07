@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
 import QRCode from "qrcode";
 
-// رمز الحضور المشفّر داخل باركود اللاعب. يُقرأ بنفس البادئة عند المسح.
+// بادئة رموز الحضور. الباركود اليومي يعرضه المدير واللاعبون يمسحونه.
 export const ATT_PREFIX = "NZ-ATT:";
-export const attendanceToken = (playerId) => `${ATT_PREFIX}${playerId}`;
+// باركود اليوم: يشفّر الإجراء (حضور/انصراف) + التاريخ + توكن اليوم
+export const dailyAttValue = (action, date, token) => `${ATT_PREFIX}${action}:${date}:${token}`;
 
 export function QRCodeImage({ value, size = 200 }) {
   const [dataUrl, setDataUrl] = useState("");

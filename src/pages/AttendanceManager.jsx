@@ -4,7 +4,7 @@ import { COLORS } from "../constants/colors";
 import { useWindowSize } from "../hooks/useWindowSize";
 import { useToast } from "../hooks/useToast";
 import { Avatar, Badge, Modal, ToastMsg } from "../components/ui";
-import { ScanAttendance } from "./ScanAttendance";
+import { AttendanceQR } from "./AttendanceQR";
 
 const today = () => new Date().toISOString().slice(0, 10);
 const fmtTime = (ts) => ts ? new Date(ts).toLocaleTimeString("ar-SA", { hour: "2-digit", minute: "2-digit" }) : "—";
@@ -23,7 +23,7 @@ export function AttendanceManager({ users, canEdit = true }) {
   const [logs, setLogs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [editRow, setEditRow] = useState(null); // { id?, user_id, day, checkIn, checkOut }
-  const [scanning, setScanning] = useState(false);
+  const [showQR, setShowQR] = useState(false);
   const { isDesktop } = useWindowSize();
   const { toast, show } = useToast();
 
@@ -100,7 +100,7 @@ export function AttendanceManager({ users, canEdit = true }) {
           <button key={m.id} onClick={() => setMode(m.id)} style={{ padding: "9px 18px", borderRadius: 20, background: mode === m.id ? COLORS.accent : COLORS.cardBg, border: `1px solid ${mode === m.id ? COLORS.accent : COLORS.border}`, color: mode === m.id ? "#000" : COLORS.textSecondary, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>{m.label}</button>
         ))}
         {canEdit && (
-          <button onClick={() => setScanning(true)} style={{ marginRight: "auto", padding: "9px 18px", borderRadius: 20, background: COLORS.accentBlue, border: "none", color: "#fff", fontWeight: 800, fontSize: 12, cursor: "pointer" }}>📷 مسح باركود الحضور</button>
+          <button onClick={() => setShowQR(true)} style={{ marginRight: "auto", padding: "9px 18px", borderRadius: 20, background: COLORS.accentBlue, border: "none", color: "#fff", fontWeight: 800, fontSize: 12, cursor: "pointer" }}>🎫 عرض باركود اليوم</button>
         )}
       </div>
 
@@ -285,13 +285,9 @@ export function AttendanceManager({ users, canEdit = true }) {
         </Modal>
       )}
 
-      {/* ماسح الباركود */}
-      {scanning && (
-        <ScanAttendance
-          players={people}
-          onClose={() => { setScanning(false); refresh(); }}
-          onRecorded={refresh}
-        />
+      {/* باركود الحضور اليومي — يعرضه المدير واللاعبون يمسحونه */}
+      {showQR && (
+        <AttendanceQR onClose={() => setShowQR(false)} />
       )}
     </div>
   );

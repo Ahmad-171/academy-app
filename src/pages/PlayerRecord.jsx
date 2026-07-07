@@ -3,7 +3,7 @@ import { supabase } from "../lib/supabase";
 import { COLORS } from "../constants/colors";
 import { useWindowSize } from "../hooks/useWindowSize";
 import { Avatar, Badge, MiniBar } from "../components/ui";
-import { QRCodeImage, attendanceToken } from "../components/QRCodeImage";
+import { PlayerScan } from "./PlayerScan";
 
 const CRITERIA = [
   { label: "السرعة",         key: "speed",    color: COLORS.accent },
@@ -17,11 +17,13 @@ const fmtTime = (ts) => ts ? new Date(ts).toLocaleTimeString("ar-SA", { hour: "2
 
 // عرض للقراءة فقط لسجل اللاعب: بياناته، الملاحظات، التقييمات، الحضور.
 // يستخدمه اللاعب لنفسه وولي الأمر لولده.
-export function PlayerRecord({ player, title }) {
+export function PlayerRecord({ player, title, canScan = false }) {
   const [notes, setNotes] = useState([]);
   const [evaluations, setEvaluations] = useState([]);
   const [attendance, setAttendance] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [scanning, setScanning] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
   const { isDesktop } = useWindowSize();
 
   useEffect(() => {
@@ -38,7 +40,7 @@ export function PlayerRecord({ player, title }) {
       setAttendance(attRes.data || []);
       setLoading(false);
     })();
-  }, [player]);
+  }, [player, reloadKey]);
 
   if (!player) return null;
 
@@ -59,18 +61,26 @@ export function PlayerRecord({ player, title }) {
         </div>
       </div>
 
-      {/* باركود الحضور */}
-      <div style={{ background: COLORS.cardBg, border: `1px solid ${COLORS.accent}44`, borderRadius: 16, padding: 20, marginBottom: 20, display: "flex", alignItems: "center", gap: 18, flexWrap: "wrap" }}>
-        <div style={{ background: "#fff", padding: 10, borderRadius: 12 }}>
-          <QRCodeImage value={attendanceToken(player.id)} size={isDesktop ? 150 : 120} />
-        </div>
-        <div style={{ flex: 1, minWidth: 180 }}>
-          <div style={{ fontSize: 15, fontWeight: 800, color: COLORS.textPrimary, marginBottom: 6 }}>📲 باركود الحضور</div>
-          <div style={{ fontSize: 13, color: COLORS.textSecondary, lineHeight: 1.7 }}>
-            اعرض هذا الباركود للمدرب عند الوصول ليُسجّل حضورك تلقائيًا بمسحه بالكاميرا.
+      {/* مسح باركود الحضور — يظهر للاعب نفسه فقط */}
+      {canScan && (
+        <div style={{ background: COLORS.cardBg, border: `1px solid ${COLORS.accent}44`, borderRadius: 16, padding: 20, marginBottom: 20, display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+          <div style={{ flex: 1, minWidth: 180 }}>
+            <div style={{ fontSize: 15, fontWeight: 800, color: COLORS.textPrimary, marginBottom: 6 }}>📲 تسجيل الحضور</div>
+            <div style={{ fontSize: 13, color: COLORS.textSecondary, lineHeight: 1.7 }}>
+              امسح باركود «حضور» المعروض لدى المدرب عند وصولك، و«انصراف» عند مغادرتك.
+            </div>
           </div>
+          <button onClick={() => setScanning(true)} style={{ padding: "12px 22px", background: COLORS.accent, border: "none", color: "#000", borderRadius: 12, fontWeight: 800, fontSize: 14, cursor: "pointer" }}>📷 مسح الباركود</button>
         </div>
-      </div>
+      )}
+
+      {scanning && (
+        <PlayerScan
+          player={player}
+          onClose={() => setScanning(false)}
+          onRecorded={() => setReloadKey(k => k + 1)}
+        />
+      )}
 
       {loading ? (
         <div style={{ textAlign: "center", padding: 40, color: COLORS.textSecondary }}>جاري التحميل...</div>

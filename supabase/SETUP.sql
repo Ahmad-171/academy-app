@@ -174,6 +174,27 @@ create or replace function my_child_id() returns text as $$
   select child_id from public.users where auth_uid = auth.uid() limit 1;
 $$ language sql security definer stable;
 
+-- عند حذف أي حساب: احذف حساب المصادقة وكل بياناته المرتبطة تلقائيًا
+-- (حتى يمكن إعادة إضافة حساب بنفس رقم الهوية لاحقًا)
+create or replace function cleanup_user_on_delete() returns trigger as $$
+begin
+  delete from public.attendance_log        where user_id = old.id;
+  delete from public.evaluations           where user_id = old.id;
+  delete from public.player_notes          where user_id = old.id;
+  delete from public.subscription_payments where user_id = old.id;
+  delete from public.store_orders          where user_id = old.id;
+  if old.auth_uid is not null then
+    delete from auth.users where id = old.auth_uid;  -- يحذف الهوية تلقائيًا
+  end if;
+  return old;
+end;
+$$ language plpgsql security definer;
+
+drop trigger if exists trg_cleanup_user_on_delete on public.users;
+create trigger trg_cleanup_user_on_delete
+after delete on public.users
+for each row execute function cleanup_user_on_delete();
+
 -- ── 3) تفعيل RLS + السياسات ──
 alter table public.users enable row level security;
 create policy users_select on public.users for select to authenticated using (true);

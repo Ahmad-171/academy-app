@@ -25,8 +25,10 @@ export function PlayersRegistryPage({ user, users, setUsers, loadData }) {
   const { toast, show } = useToast();
 
   const canEdit = isManager(user) || user.permissions?.editData;
+  // الحسابات المخفية لا تظهر إلا لحساب المبرمج
+  const canSeeHidden = user.role === "مبرمج";
 
-  const players = users.filter(u => u.role === "لاعب").filter(p =>
+  const players = users.filter(u => u.role === "لاعب" && (canSeeHidden || !u.hidden)).filter(p =>
     !search || p.name.includes(search) || p.id.includes(search) || (p.membershipNumber || p.membership_number || "").includes(search)
   );
 

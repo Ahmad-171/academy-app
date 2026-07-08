@@ -241,7 +241,7 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
         <span style={{ fontSize: 26 }}>🔐</span>
         <div>
           <div style={{ fontSize: 15, fontWeight: 800, color: COLORS.purple }}>لوحة تحكم المدير</div>
-          <div style={{ fontSize: 12, color: COLORS.textSecondary }}>صلاحيات كاملة · {users.length} حساب مسجل</div>
+          <div style={{ fontSize: 12, color: COLORS.textSecondary }}>صلاحيات كاملة · {visibleUsers.length} حساب مسجل</div>
         </div>
       </div>
 
@@ -375,15 +375,15 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
 )}
       {/* الحضور والانصراف */}
       {adminTab === "attendance" && (
-        <AttendanceManager users={users} />
+        <AttendanceManager users={visibleUsers} />
       )}
       {/* التقييم */}
       {adminTab === "evaluation" && (
-        <EvaluationManager users={users} />
+        <EvaluationManager users={visibleUsers} />
       )}
       {/* الملاحظات */}
       {adminTab === "notes" && (
-        <NotesManager users={users} />
+        <NotesManager users={visibleUsers} />
       )}
 {/* الأسعار */}
 {adminTab === "pricing" && (

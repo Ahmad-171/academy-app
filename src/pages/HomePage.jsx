@@ -19,8 +19,8 @@ export function HomePage({ onNav, user, users, notifications = [], directorMsg, 
   const { isDesktop } = useWindowSize();
   useEffect(() => { setTimeout(() => setVisible(true), 100); }, []);
 
-  const players = users.filter(u => u.role === "لاعب");
-  const coaches = users.filter(u => u.role === "مدرب");
+  const players = users.filter(u => u.role === "لاعب" && !u.hidden);
+  const coaches = users.filter(u => u.role === "مدرب" && !u.hidden);
   const canEditMsg = isManager(user);
 
   // أخبار الصفحة الرئيسية: الفعاليات/الرسائل المعلّمة للظهور هنا والمستهدِفة لدور المستخدم

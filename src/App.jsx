@@ -197,6 +197,30 @@ export default function App() {
 
   if (!liveUser) return <LoginPage onLogin={handleLogin} logoUrl={logoUrl} />;
 
+  // بوابة العقد: المشترك (لاعب/ولي أمر) لا يستخدم حسابه إلا بعد توقيع العقد
+  const needsContract = (liveUser.role === "لاعب" || liveUser.role === "ولي أمر") && !liveUser.contract_signed;
+  if (needsContract) return (
+    <div data-theme-tick={themeTick} style={{ minHeight: "100vh", background: COLORS.darkBg, fontFamily: "'Cairo',sans-serif", direction: "rtl", color: COLORS.textPrimary }}>
+      <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
+      <div style={{ background: COLORS.cardBg, borderBottom: `1px solid ${COLORS.border}`, padding: "12px 18px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
+          <Logo size={34} src={logoUrl} />
+          <div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: COLORS.textPrimary }}>{BRAND_NAME}</div>
+            <div style={{ fontSize: 10, color: COLORS.accent }}>{liveUser.name}</div>
+          </div>
+        </div>
+        <button onClick={handleLogout} style={{ background: COLORS.danger + "22", border: `1px solid ${COLORS.danger}33`, color: COLORS.danger, borderRadius: 8, padding: "6px 12px", cursor: "pointer", fontSize: 12, fontWeight: 700 }}>خروج</button>
+      </div>
+      <div style={{ maxWidth: 680, margin: "0 auto" }}>
+        <div style={{ background: COLORS.warning + "15", border: `1px solid ${COLORS.warning}44`, borderRadius: 12, padding: "14px 18px", margin: "18px 16px 0", fontSize: 13, color: COLORS.warning, lineHeight: 1.7 }}>
+          👋 مرحبًا بك! لتفعيل حسابك واستخدام الموقع، يجب الاطلاع على الشروط وتوقيع العقد أولاً.
+        </div>
+        <AboutPage user={liveUser} setUsers={setUsers} />
+      </div>
+    </div>
+  );
+
   return (
     <div data-theme-tick={themeTick} style={{ minHeight: "100vh", background: COLORS.darkBg, fontFamily: "'Cairo',sans-serif", direction: "rtl", color: COLORS.textPrimary, overflowX: "hidden" }}>
       <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet" />

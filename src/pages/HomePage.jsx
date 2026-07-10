@@ -22,6 +22,8 @@ export function HomePage({ onNav, user, users, notifications = [], directorMsg, 
   const players = users.filter(u => u.role === "لاعب" && !u.hidden);
   const coaches = users.filter(u => u.role === "مدرب" && !u.hidden);
   const canEditMsg = isManager(user);
+  // تغيير الشعار والخلفية لحساب المبرمج فقط (ليس المدير)
+  const canEditBranding = user.role === "مبرمج";
 
   // أخبار الصفحة الرئيسية: الفعاليات/الرسائل المعلّمة للظهور هنا والمستهدِفة لدور المستخدم
   const notifColors = NOTIF_COLORS(COLORS);
@@ -51,13 +53,13 @@ export function HomePage({ onNav, user, users, notifications = [], directorMsg, 
       <div style={{ background: heroBg ? `linear-gradient(160deg,#0a1628cc 0%,#0d2044aa 50%,#0a1628cc 100%), url(${heroBg}) center/cover no-repeat` : "linear-gradient(160deg,#0a1628 0%,#0d2044 50%,#0a1628 100%)", padding: isDesktop ? "40px 48px" : "32px 18px 26px", position: "relative", overflow: "hidden", borderBottom: `1px solid ${COLORS.border}`, borderRadius: isDesktop ? 20 : 0, marginBottom: isDesktop ? 24 : 0 }}>
         {!heroBg && <div style={{ position: "absolute", inset: 0, opacity: 0.04, backgroundImage: `repeating-linear-gradient(0deg,#fff 0,#fff 1px,transparent 1px,transparent 60px),repeating-linear-gradient(90deg,#fff 0,#fff 1px,transparent 1px,transparent 60px)` }} />}
 
-        {canEditMsg && (
+        {canEditBranding && (
           <label style={{ position: "absolute", top: 12, right: 12, zIndex: 2, background: "#000000aa", border: "1px solid #ffffff33", color: "#fff", borderRadius: 9, padding: "6px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
             {bgUploading ? "جاري الرفع..." : "🖼️ تغيير الخلفية"}
             <input type="file" accept="image/*" onChange={e => changeBg(e.target.files?.[0])} style={{ display: "none" }} />
           </label>
         )}
-        {canEditMsg && heroBg && (
+        {canEditBranding && heroBg && (
           <button onClick={() => setHeroBg("")} style={{ position: "absolute", top: 12, right: 130, zIndex: 2, background: "#000000aa", border: "1px solid #ffffff33", color: "#fff", borderRadius: 9, padding: "6px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>إزالة</button>
         )}
 
@@ -66,7 +68,7 @@ export function HomePage({ onNav, user, users, notifications = [], directorMsg, 
             <div style={{ display: "flex", alignItems: "center", gap: 14, marginBottom: 18 }}>
               <div style={{ opacity: visible ? 1 : 0, transition: "all 0.6s ease", position: "relative" }}>
                 <Logo size={isDesktop ? 64 : 54} src={logoUrl} />
-                {canEditMsg && (
+                {canEditBranding && (
                   <label title="تغيير الشعار" style={{ position: "absolute", bottom: -6, left: -6, width: 24, height: 24, borderRadius: "50%", background: COLORS.accent, color: "#000", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, cursor: "pointer", border: "2px solid #0a1628" }}>
                     {logoUploading ? "…" : "✎"}
                     <input type="file" accept="image/*" onChange={e => changeLogo(e.target.files?.[0])} style={{ display: "none" }} />

@@ -169,8 +169,8 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
       membership: form.membership || '-',
       status: form.status || 'نشط',
       position: form.position || '-',
-      child_id: form.childId || null,
-      coach_id: form.coachId || null,
+      child_id: form.childId?.trim() || null,
+      coach_id: form.coachId?.trim() || null,
       permissions: form.permissions || {},
       hidden: !!form.hidden,
     };
@@ -697,9 +697,19 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
               <Field label="العضوية" value={form.membership || "فضية"} onChange={v => setForm(p => ({ ...p, membership: v }))} options={["فضية", "ذهبية", "ماسية"]} />
               <Field label="المدرب المسؤول (ID)" value={form.coachId || ""} onChange={v => setForm(p => ({ ...p, coachId: v }))} placeholder="رقم هوية المدرب" />
             </>}
-            {form.role === "ولي أمر" && (
-              <Field label="رقم هوية اللاعب (الابن)" value={form.childId || ""} onChange={v => setForm(p => ({ ...p, childId: v }))} placeholder="رقم هوية اللاعب" />
-            )}
+            {form.role === "ولي أمر" && (() => {
+              const child = form.childId?.trim() ? users.find(u => u.id === form.childId.trim() && u.role === "لاعب") : null;
+              return (
+                <div>
+                  <Field label="رقم هوية اللاعب (الابن)" value={form.childId || ""} onChange={v => setForm(p => ({ ...p, childId: v }))} placeholder="اكتب رقم هوية اللاعب لربطه" />
+                  {form.childId?.trim() && (
+                    child
+                      ? <div style={{ fontSize: 11, color: COLORS.accent, marginTop: -6 }}>✅ سيُربط بـ: {child.name}</div>
+                      : <div style={{ fontSize: 11, color: COLORS.warning, marginTop: -6 }}>⚠️ لا يوجد لاعب بهذا الرقم</div>
+                  )}
+                </div>
+              );
+            })()}
             <Field label="الحالة" value={form.status || "نشط"} onChange={v => setForm(p => ({ ...p, status: v }))} options={["نشط", "موقوف", "معلق"]} />
           </div>
 

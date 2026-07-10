@@ -34,9 +34,11 @@ export default function App() {
   const [directorMsg, setDirectorMsg]     = useState("نؤمن بأن كل موهبة تستحق الرعاية والتطوير.");
   const [subscriptionPlans, setSubscriptionPlans] = useState(SUBSCRIPTION_PLANS);
   const [heroBg, setHeroBg]               = useState("");
-  const [logoUrl, setLogoUrl]             = useState("");
+  // الشعار محفوظ محليًا ليظهر فورًا قبل تسجيل الدخول (شاشة التحميل والدخول)
+  const [logoUrl, setLogoUrl]             = useState(() => { try { return localStorage.getItem("nz_logo") || ""; } catch { return ""; } });
   const [loading, setLoading]             = useState(true);
-  const [themeTick, setThemeTick]         = useState(0);
+  // تطبيق الألوان المحفوظة محليًا فورًا عند الفتح (قبل تحميل الإعدادات)
+  const [themeTick, setThemeTick]         = useState(() => { try { const t = localStorage.getItem("nz_theme"); if (t) applyTheme(JSON.parse(t)); } catch { /* افتراضي */ } return 0; });
   const { isDesktop }                     = useWindowSize();
 
   // ── تحميل البيانات من Supabase ──
@@ -91,9 +93,9 @@ export default function App() {
         const bg = settingsData.find(s => s.key === 'hero_background');
         if (bg) setHeroBg(bg.value || "");
         const logo = settingsData.find(s => s.key === 'logo_url');
-        if (logo) setLogoUrl(logo.value || "");
+        if (logo) { setLogoUrl(logo.value || ""); try { localStorage.setItem("nz_logo", logo.value || ""); } catch {} }
         const theme = settingsData.find(s => s.key === 'theme_colors');
-        if (theme) { try { applyTheme(JSON.parse(theme.value)); setThemeTick(t => t + 1); } catch { /* ألوان افتراضية */ } }
+        if (theme) { try { applyTheme(JSON.parse(theme.value)); setThemeTick(t => t + 1); localStorage.setItem("nz_theme", theme.value); } catch { /* ألوان افتراضية */ } }
       }
     } catch (err) {
       console.error('Error loading data:', err);
@@ -139,6 +141,7 @@ export default function App() {
   // ── حفظ شعار الأكاديمية ──
   const saveLogo = async (url) => {
     setLogoUrl(url);
+    try { localStorage.setItem("nz_logo", url || ""); } catch {}
     await supabase.from('settings').upsert({ key: 'logo_url', value: url });
   };
 
@@ -146,11 +149,13 @@ export default function App() {
   const saveTheme = async (colors) => {
     applyTheme(colors);
     setThemeTick(t => t + 1);
+    try { localStorage.setItem("nz_theme", JSON.stringify(colors)); } catch {}
     await supabase.from('settings').upsert({ key: 'theme_colors', value: JSON.stringify(colors) });
   };
   const resetThemeAll = async () => {
     resetTheme();
     setThemeTick(t => t + 1);
+    try { localStorage.setItem("nz_theme", JSON.stringify(DEFAULT_COLORS)); } catch {}
     await supabase.from('settings').upsert({ key: 'theme_colors', value: JSON.stringify(DEFAULT_COLORS) });
   };
 
@@ -184,7 +189,7 @@ export default function App() {
   };
   if (loading) return (
     <div style={{ minHeight: "100vh", background: "#0a0e1a", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16, fontFamily: "'Cairo',sans-serif" }}>
-      <div style={{ animation: "spin 1s linear infinite" }}><Logo size={60} /></div>
+      <div style={{ animation: "spin 1s linear infinite" }}><Logo size={60} src={logoUrl} /></div>
       <div style={{ color: "#00c896", fontSize: 16, fontWeight: 700 }}>جاري التحميل...</div>
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </div>

@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { supabase } from "../lib/supabase";
 import { createAccount } from "../lib/auth";
-import { COLORS } from "../constants/colors";
+import { COLORS, DEFAULT_COLORS } from "../constants/colors";
 import { PERMISSION_LABELS, isManager } from "../constants/data";
 import { useWindowSize } from "../hooks/useWindowSize";
 import { useToast } from "../hooks/useToast";
@@ -14,10 +14,25 @@ import { NotesManager } from "./NotesManager";
 const EMPTY_PRODUCT = { name: "", price: "", category: "ملابس", img: "👕" };
 const EMPTY_CODE = { code: "", percent: "", maxUses: "" };
 
-export function AdminPage({ user, users, setUsers, products, setProducts, loadData, subscriptionPlans, saveSubscriptionPlans }) {
+const THEME_FIELDS = [
+  { key: "accent",        label: "اللون الأساسي" },
+  { key: "accentGold",    label: "الذهبي" },
+  { key: "accentBlue",    label: "الأزرق" },
+  { key: "purple",        label: "البنفسجي" },
+  { key: "darkBg",        label: "خلفية الموقع" },
+  { key: "cardBg",        label: "البطاقات" },
+  { key: "surface",       label: "السطح/الحقول" },
+  { key: "border",        label: "الحدود" },
+  { key: "textPrimary",   label: "النص الأساسي" },
+  { key: "textSecondary", label: "النص الثانوي" },
+  { key: "danger",        label: "الحذف/الخطر" },
+  { key: "warning",       label: "التحذير" },
+];
+
+export function AdminPage({ user, users, setUsers, products, setProducts, loadData, subscriptionPlans, saveSubscriptionPlans, saveTheme, resetThemeAll }) {
   const isAdmin = isManager(user);
   const can = (perm) => isAdmin || !!user.permissions?.[perm];
-  // حساب المبرمج فقط يرى الحسابات المخفية ويتحكم في إخفائها/إظهارها
+  // حساب المبرمج فقط يرى الحسابات المخفية ويتحكم في إخفائها/إظهارها والألوان
   const canSeeHidden = user.role === "مبرمج";
 
   const TABS = [
@@ -30,7 +45,10 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
     { id: "finance",     label: "💰 المالية",            show: isAdmin },
     { id: "reports",     label: "📈 التقارير",           show: isAdmin },
     { id: "pricing",     label: "💲 الأسعار",            show: can("editCommerce") },
+    { id: "theme",       label: "🎨 الألوان",            show: canSeeHidden },
   ].filter(t => t.show);
+
+  const [themeDraft, setThemeDraft] = useState({ ...COLORS });
 
   const [adminTab, setAdminTab] = useState(TABS[0]?.id || "overview");
   const [modal, setModal] = useState(null);
@@ -632,6 +650,33 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
                 </div>
               );
             })}
+          </div>
+        </div>
+      )}
+
+      {/* الألوان — لحساب المبرمج فقط */}
+      {adminTab === "theme" && canSeeHidden && (
+        <div>
+          <div style={{ fontSize: 16, fontWeight: 800, color: COLORS.textPrimary, marginBottom: 6 }}>🎨 ألوان الموقع</div>
+          <div style={{ fontSize: 12, color: COLORS.textSecondary, marginBottom: 18 }}>غيّر الألوان ثم احفظ. تُطبَّق على الموقع كامل لجميع المستخدمين.</div>
+
+          <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(2,1fr)" : "1fr", gap: 12, marginBottom: 20 }}>
+            {THEME_FIELDS.map(f => (
+              <div key={f.key} style={{ display: "flex", alignItems: "center", gap: 12, background: COLORS.cardBg, border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: "12px 14px" }}>
+                <input type="color" value={themeDraft[f.key]} onChange={e => setThemeDraft(p => ({ ...p, [f.key]: e.target.value }))}
+                  style={{ width: 44, height: 40, border: "none", background: "none", cursor: "pointer", flexShrink: 0, padding: 0 }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: COLORS.textPrimary }}>{f.label}</div>
+                  <input value={themeDraft[f.key]} onChange={e => setThemeDraft(p => ({ ...p, [f.key]: e.target.value }))}
+                    style={{ width: 100, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.textSecondary, borderRadius: 7, padding: "4px 8px", fontSize: 12, marginTop: 3 }} />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+            <button onClick={() => { saveTheme(themeDraft); show("✅ تم حفظ الألوان"); }} style={{ flex: 1, minWidth: 160, padding: "13px", borderRadius: 12, background: COLORS.accent, border: "none", color: "#000", fontWeight: 800, fontSize: 14, cursor: "pointer" }}>💾 حفظ وتطبيق</button>
+            <button onClick={() => { resetThemeAll(); setThemeDraft({ ...DEFAULT_COLORS }); show("↩️ رجعت الألوان الافتراضية"); }} style={{ padding: "13px 20px", borderRadius: 12, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.textSecondary, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>↩️ الافتراضي</button>
           </div>
         </div>
       )}

@@ -1,7 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { supabase } from "./lib/supabase";
 import { currentUserFromSession, signOut as authSignOut, onAuthChange } from "./lib/auth";
-import { COLORS } from "./constants/colors";
+import { COLORS, applyTheme, resetTheme, DEFAULT_COLORS } from "./constants/colors";
 import { BRAND_NAME, BRAND_TAGLINE } from "./constants/brand";
 import { ROLE_TABS, ALL_TABS, SUBSCRIPTION_PLANS, isManager } from "./constants/data";
 import { useWindowSize } from "./hooks/useWindowSize";
@@ -36,6 +36,7 @@ export default function App() {
   const [heroBg, setHeroBg]               = useState("");
   const [logoUrl, setLogoUrl]             = useState("");
   const [loading, setLoading]             = useState(true);
+  const [themeTick, setThemeTick]         = useState(0);
   const { isDesktop }                     = useWindowSize();
 
   // ── تحميل البيانات من Supabase ──
@@ -91,6 +92,8 @@ export default function App() {
         if (bg) setHeroBg(bg.value || "");
         const logo = settingsData.find(s => s.key === 'logo_url');
         if (logo) setLogoUrl(logo.value || "");
+        const theme = settingsData.find(s => s.key === 'theme_colors');
+        if (theme) { try { applyTheme(JSON.parse(theme.value)); setThemeTick(t => t + 1); } catch { /* ألوان افتراضية */ } }
       }
     } catch (err) {
       console.error('Error loading data:', err);
@@ -139,6 +142,18 @@ export default function App() {
     await supabase.from('settings').upsert({ key: 'logo_url', value: url });
   };
 
+  // ── حفظ ألوان الموقع (من حساب المبرمج) ──
+  const saveTheme = async (colors) => {
+    applyTheme(colors);
+    setThemeTick(t => t + 1);
+    await supabase.from('settings').upsert({ key: 'theme_colors', value: JSON.stringify(colors) });
+  };
+  const resetThemeAll = async () => {
+    resetTheme();
+    setThemeTick(t => t + 1);
+    await supabase.from('settings').upsert({ key: 'theme_colors', value: JSON.stringify(DEFAULT_COLORS) });
+  };
+
   const liveUser = currentUser ? users.find(u => u.id === currentUser.id) || currentUser : null;
 
   const handleLogin  = (user) => { setCurrentUser(user); setActive("home"); loadData(); };
@@ -163,7 +178,7 @@ export default function App() {
       case "mychild":       return <MyChildPage user={liveUser} users={users} />;
       case "myrecord":      return <MyRecordPage user={liveUser} />;
       case "library":       return <LibraryPage user={liveUser} library={library} setLibrary={setLibrary} />;
-      case "admin":         return hasAdminAccess ? <AdminPage user={liveUser} users={users} setUsers={setUsers} products={products} setProducts={setProducts} loadData={loadData} subscriptionPlans={subscriptionPlans} saveSubscriptionPlans={saveSubscriptionPlans} /> : <HomePage onNav={setActive} user={liveUser} users={users} notifications={notifications} directorMsg={directorMsg} setDirectorMsg={saveDirectorMsg} heroBg={heroBg} setHeroBg={saveHeroBg} logoUrl={logoUrl} setLogo={saveLogo} />;
+      case "admin":         return hasAdminAccess ? <AdminPage user={liveUser} users={users} setUsers={setUsers} products={products} setProducts={setProducts} loadData={loadData} subscriptionPlans={subscriptionPlans} saveSubscriptionPlans={saveSubscriptionPlans} saveTheme={saveTheme} resetThemeAll={resetThemeAll} /> : <HomePage onNav={setActive} user={liveUser} users={users} notifications={notifications} directorMsg={directorMsg} setDirectorMsg={saveDirectorMsg} heroBg={heroBg} setHeroBg={saveHeroBg} logoUrl={logoUrl} setLogo={saveLogo} />;
       default:              return <HomePage onNav={setActive} user={liveUser} users={users} notifications={notifications} directorMsg={directorMsg} setDirectorMsg={saveDirectorMsg} heroBg={heroBg} setHeroBg={saveHeroBg} logoUrl={logoUrl} setLogo={saveLogo} />;
     }
   };
@@ -178,7 +193,7 @@ export default function App() {
   if (!liveUser) return <LoginPage onLogin={handleLogin} logoUrl={logoUrl} />;
 
   return (
-    <div style={{ minHeight: "100vh", background: COLORS.darkBg, fontFamily: "'Cairo',sans-serif", direction: "rtl", color: COLORS.textPrimary, overflowX: "hidden" }}>
+    <div data-theme-tick={themeTick} style={{ minHeight: "100vh", background: COLORS.darkBg, fontFamily: "'Cairo',sans-serif", direction: "rtl", color: COLORS.textPrimary, overflowX: "hidden" }}>
       <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
 
       <div style={{ display: "flex", minHeight: "100vh" }}>

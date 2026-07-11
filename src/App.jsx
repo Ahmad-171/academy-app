@@ -1,11 +1,11 @@
 import { useState, useCallback, useEffect } from "react";
 import { supabase } from "./lib/supabase";
-import { currentUserFromSession, signOut as authSignOut, onAuthChange } from "./lib/auth";
+import { currentUserFromSession, signOut as authSignOut, onAuthChange, changeMyPassword } from "./lib/auth";
 import { COLORS, applyTheme, resetTheme, DEFAULT_COLORS } from "./constants/colors";
 import { BRAND_NAME, BRAND_TAGLINE } from "./constants/brand";
 import { ROLE_TABS, ALL_TABS, SUBSCRIPTION_PLANS, isManager } from "./constants/data";
 import { useWindowSize } from "./hooks/useWindowSize";
-import { Avatar } from "./components/ui";
+import { Avatar, Modal } from "./components/ui";
 import { Logo } from "./components/Logo";
 import { MoreMenu } from "./components/MoreMenu";
 import { LoginPage } from "./pages/LoginPage";
@@ -39,6 +39,9 @@ export default function App() {
   const [loading, setLoading]             = useState(true);
   // تطبيق الألوان المحفوظة محليًا فورًا عند الفتح (قبل تحميل الإعدادات)
   const [themeTick, setThemeTick]         = useState(() => { try { const t = localStorage.getItem("nz_theme"); if (t) applyTheme(JSON.parse(t)); } catch { /* افتراضي */ } return 0; });
+  const [pwModal, setPwModal]             = useState(false);
+  const [myNewPw, setMyNewPw]             = useState("");
+  const [pwMsg, setPwMsg]                 = useState("");
   const { isDesktop }                     = useWindowSize();
 
   // ── تحميل البيانات من Supabase ──
@@ -163,6 +166,12 @@ export default function App() {
 
   const handleLogin  = (user) => { setCurrentUser(user); setActive("home"); loadData(); };
   const handleLogout = async () => { await authSignOut(); setCurrentUser(null); setUsers([]); setActive("home"); };
+  const changeMyPw = async () => {
+    if (myNewPw.trim().length < 6) { setPwMsg("كلمة السر يجب أن تكون 6 خانات على الأقل"); return; }
+    const { error } = await changeMyPassword(myNewPw.trim());
+    if (error) { setPwMsg(error); return; }
+    setPwMsg(""); setMyNewPw(""); setPwModal(false);
+  };
   // من يحمل صلاحية إدارية يشوف تبويب الإدارة حتى لو ما كان مديرًا
   const hasAdminAccess = isManager(liveUser) || ADMIN_PERMS.some(k => liveUser?.permissions?.[k]);
   const allowedIds = [...(ROLE_TABS[liveUser?.role] || [])];
@@ -276,8 +285,11 @@ export default function App() {
               ))}
             </div>
 
-            {/* تسجيل الخروج */}
-            <div style={{ padding: "14px 16px", borderTop: `1px solid ${COLORS.border}` }}>
+            {/* كلمة السر + تسجيل الخروج */}
+            <div style={{ padding: "14px 16px", borderTop: `1px solid ${COLORS.border}`, display: "flex", flexDirection: "column", gap: 8 }}>
+              <button onClick={() => { setPwModal(true); setMyNewPw(""); setPwMsg(""); }} style={{ width: "100%", padding: "10px", borderRadius: 11, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.textSecondary, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>
+                🔒 تغيير كلمة السر
+              </button>
               <button onClick={handleLogout} style={{ width: "100%", padding: "11px", borderRadius: 11, background: COLORS.danger + "18", border: `1px solid ${COLORS.danger}33`, color: COLORS.danger, fontWeight: 800, fontSize: 13, cursor: "pointer", display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
                 🚪 تسجيل الخروج
               </button>
@@ -305,6 +317,7 @@ export default function App() {
                     <div style={{ position: "absolute", top: -2, right: -2, width: 15, height: 15, borderRadius: "50%", background: COLORS.danger, fontSize: 8, fontWeight: 800, display: "flex", alignItems: "center", justifyContent: "center", color: "#fff" }}>{unreadCount}</div>
                   )}
                 </button>
+                <button onClick={() => { setPwModal(true); setMyNewPw(""); setPwMsg(""); }} title="تغيير كلمة السر" style={{ background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.textSecondary, borderRadius: 8, padding: "5px 9px", cursor: "pointer", fontSize: 13 }}>🔒</button>
                 <button onClick={handleLogout} style={{ background: COLORS.danger + "22", border: `1px solid ${COLORS.danger}33`, color: COLORS.danger, borderRadius: 8, padding: "5px 11px", cursor: "pointer", fontSize: 11, fontWeight: 700 }}>خروج</button>
               </div>
             </div>
@@ -336,6 +349,21 @@ export default function App() {
           )}
         </div>
         )}
+
+      {/* تغيير كلمة السر الخاصة بي */}
+      {pwModal && (
+        <Modal title="🔒 تغيير كلمة السر" onClose={() => { setPwModal(false); setMyNewPw(""); setPwMsg(""); }}>
+          <div style={{ fontSize: 12, color: COLORS.textSecondary, marginBottom: 14 }}>اكتب كلمة سر جديدة لحسابك.</div>
+          <input type="password" value={myNewPw} onChange={e => setMyNewPw(e.target.value)} placeholder="6 خانات على الأقل"
+            onKeyDown={e => e.key === "Enter" && changeMyPw()}
+            style={{ width: "100%", background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.textPrimary, borderRadius: 10, padding: "11px 14px", fontSize: 14, boxSizing: "border-box", marginBottom: 12 }} />
+          {pwMsg && <div style={{ background: COLORS.danger + "15", border: `1px solid ${COLORS.danger}33`, borderRadius: 8, padding: "8px 12px", fontSize: 12, color: COLORS.danger, marginBottom: 12 }}>⚠️ {pwMsg}</div>}
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={() => { setPwModal(false); setMyNewPw(""); setPwMsg(""); }} style={{ flex: 1, padding: "12px", borderRadius: 11, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.textSecondary, fontWeight: 700, cursor: "pointer" }}>إلغاء</button>
+            <button onClick={changeMyPw} style={{ flex: 2, padding: "12px", borderRadius: 11, background: COLORS.accent, border: "none", color: "#000", fontWeight: 800, cursor: "pointer" }}>✅ حفظ</button>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

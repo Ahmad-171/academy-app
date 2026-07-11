@@ -1,5 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
-import { supabase, SUPABASE_URL, SUPABASE_ANON_KEY } from "./supabase";
+import { supabase } from "./supabase";
 
 // المصادقة عبر Supabase Auth. رقم الهوية يُحوّل لبريد اصطناعي داخلي،
 // وكلمة السر تبقى في Supabase Auth فقط (لا تُخزَّن في جدول users بعد الترحيل).
@@ -40,19 +39,27 @@ export function onAuthChange(cb) {
   return supabase.auth.onAuthStateChange((_event, session) => cb(session));
 }
 
-// إنشاء حساب جديد (يستدعيه المدير). نستخدم عميلًا ثانويًا لا يحفظ الجلسة
-// حتى لا يتبدّل حساب المدير الحالي عند إنشاء المستخدم في Supabase Auth.
+// إنشاء حساب جديد (يستدعيه المدير). يتم عبر دالة create_member في القاعدة:
+// تخصّص رقم عضوية (يبدأ من 10000)، وتُنشئ حساب المصادقة بريده = رقم العضوية،
+// ثم نُكمّل باقي بيانات الملف. لا يمرّ على بريد التأكيد (لا حدود إرسال).
 export async function createAccount({ id, password, profile }) {
-  const tempClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-    auth: { persistSession: false, autoRefreshToken: false },
+  const { data: membershipNo, error } = await supabase.rpc("create_member", {
+    p_id: id, p_pass: password, p_name: profile.name, p_role: profile.role, p_hidden: !!profile.hidden,
   });
-  const { data, error } = await tempClient.auth.signUp({ email: emailFor(id), password });
   if (error) return { error: error.message };
-  const authUid = data.user?.id;
-  if (!authUid) return { error: "تعذّر إنشاء حساب الدخول — تأكد من تعطيل تأكيد البريد في إعدادات Supabase" };
+  const { error: updErr } = await supabase.from("users").update(profile).eq("id", id);
+  if (updErr) return { error: updErr.message };
+  return { ok: true, membershipNo };
+}
 
-  // صف users يُدرَج عبر جلسة المدير الحالية (سياسات RLS تسمح للمدير)
-  const { error: insErr } = await supabase.from("users").insert({ id, auth_uid: authUid, ...profile });
-  if (insErr) return { error: insErr.message };
-  return { ok: true };
+// إعادة تعيين كلمة سر أي عضو (للمدير/المبرمج) — بدون معرفة القديمة
+export async function resetMemberPassword(userId, newPass) {
+  const { error } = await supabase.rpc("reset_member_password", { p_user_id: userId, p_new_pass: newPass });
+  return { error: error?.message };
+}
+
+// تغيير المستخدم كلمة سره بنفسه
+export async function changeMyPassword(newPass) {
+  const { error } = await supabase.auth.updateUser({ password: newPass });
+  return { error: error?.message };
 }

@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { supabase } from "../lib/supabase";
-import { createAccount } from "../lib/auth";
+import { createAccount, resetMemberPassword } from "../lib/auth";
 import { COLORS, DEFAULT_COLORS } from "../constants/colors";
 import { PERMISSION_LABELS, isManager } from "../constants/data";
 import { useWindowSize } from "../hooks/useWindowSize";
@@ -188,7 +188,7 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
       if (users.find(u => u.id === form.id)) {
         show("⚠️ رقم الهوية مستخدم مسبقاً", COLORS.warning); return;
       }
-      const { error } = await createAccount({
+      const { error, membershipNo } = await createAccount({
         id: form.id.trim(),
         password: form.password.trim(),
         profile: {
@@ -200,7 +200,7 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
         },
       });
       if (error) { show(`⚠️ خطأ: ${error}`, COLORS.danger); return; }
-      show("✅ تم إضافة الحساب");
+      show(`✅ تم إضافة الحساب — رقم العضوية للدخول: ${membershipNo}`);
     }
     await loadData();
     setModal(null);
@@ -219,6 +219,17 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
     setUsers(prev => prev.filter(u => u.id !== id));
     show("🗑️ تم حذف الحساب", COLORS.danger);
     setModal(null);
+  };
+
+  // إعادة تعيين كلمة سر عضو (بدون معرفة القديمة)
+  const [pwTarget, setPwTarget] = useState(null);
+  const [newPw, setNewPw] = useState("");
+  const doResetPassword = async () => {
+    if (newPw.trim().length < 6) { show("⚠️ كلمة السر يجب أن تكون 6 خانات على الأقل", COLORS.warning); return; }
+    const { error } = await resetMemberPassword(pwTarget.id, newPw.trim());
+    if (error) { show(`⚠️ ${error}`, COLORS.danger); return; }
+    show(`✅ تم تغيير كلمة سر ${pwTarget.name}`);
+    setPwTarget(null); setNewPw("");
   };
 
   // إخفاء/إظهار حساب: المخفي لا يظهر في باقي أنحاء الموقع (يبقى في قائمة الإدارة)
@@ -338,6 +349,7 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
                       {u.hidden && <Badge text="🙈 مخفي" color={COLORS.purple} />}
                     </div>
                     <div style={{ fontSize: 11, color: COLORS.textSecondary }}>{u.customRole || u.role}{u.position !== "-" ? ` · ${u.position}` : ""}</div>
+                    {u.membership_no != null && <div style={{ fontSize: 11, color: COLORS.accent, fontWeight: 700 }}>🎫 رقم العضوية (الدخول): {u.membership_no}</div>}
                     <div style={{ fontSize: 11, color: COLORS.textSecondary }}>🪪 {u.id} · 📱 {u.phone}</div>
                     {u.membership !== "-" && <div style={{ fontSize: 10, color: COLORS.accentGold, marginTop: 2 }}>عضوية {u.membership}</div>}
                     {u.role === "لاعب" && <div style={{ fontSize: 10, color: COLORS.textSecondary, marginTop: 2 }}>نقاط: {u.points} · حضور: {u.attendance}٪</div>}
@@ -346,6 +358,7 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
                 <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
                   <button onClick={() => openEdit(u)} style={{ flex: 1, minWidth: 60, padding: "7px", borderRadius: 9, background: COLORS.accentBlue+"22", border: `1px solid ${COLORS.accentBlue}44`, color: COLORS.accentBlue, fontSize: 11, fontWeight: 700, cursor: "pointer" }}>✏️ تعديل</button>
                   <button onClick={() => { setPermTarget({ ...u, permissions: { ...EMPTY_FORM.permissions, ...(u.permissions||{}) } }); }} style={{ flex: 1, minWidth: 60, padding: "7px", borderRadius: 9, background: COLORS.purple+"22", border: `1px solid ${COLORS.purple}44`, color: COLORS.purple, fontSize: 11, fontWeight: 700, cursor: "pointer" }}>🔑 صلاحيات</button>
+                  <button onClick={() => { setPwTarget(u); setNewPw(""); }} style={{ flex: 1, minWidth: 60, padding: "7px", borderRadius: 9, background: COLORS.accentGold+"22", border: `1px solid ${COLORS.accentGold}44`, color: COLORS.accentGold, fontSize: 11, fontWeight: 700, cursor: "pointer" }}>🔒 كلمة السر</button>
                   <button onClick={() => { setActionTarget(u); setModal("suspend"); }} style={{ flex: 1, minWidth: 60, padding: "7px", borderRadius: 9, background: u.status==="موقوف" ? COLORS.accent+"22" : COLORS.warning+"22", border: `1px solid ${u.status==="موقوف" ? COLORS.accent+"44" : COLORS.warning+"44"}`, color: u.status==="موقوف" ? COLORS.accent : COLORS.warning, fontSize: 11, fontWeight: 700, cursor: "pointer" }}>{u.status==="موقوف" ? "✅ تفعيل" : "⛔ إيقاف"}</button>
                   {canSeeHidden && (
                     <button onClick={() => toggleHidden(u)} style={{ flex: 1, minWidth: 60, padding: "7px", borderRadius: 9, background: u.hidden ? COLORS.purple+"33" : COLORS.surface, border: `1px solid ${u.hidden ? COLORS.purple+"66" : COLORS.border}`, color: u.hidden ? COLORS.purple : COLORS.textSecondary, fontSize: 11, fontWeight: 700, cursor: "pointer" }}>{u.hidden ? "👁️ إظهار" : "🙈 إخفاء"}</button>
@@ -796,6 +809,25 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
           <div style={{ display: "flex", gap: 10 }}>
             <button onClick={() => setModal(null)} style={{ flex: 1, padding: "12px", borderRadius: 11, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.textSecondary, fontWeight: 700, cursor: "pointer" }}>إلغاء</button>
             <button onClick={() => deleteAccount(actionTarget.id)} style={{ flex: 2, padding: "12px", borderRadius: 11, border: "none", background: COLORS.danger, color: "#fff", fontWeight: 800, cursor: "pointer" }}>🗑️ حذف نهائياً</button>
+          </div>
+        </Modal>
+      )}
+
+      {/* Modal تغيير كلمة السر */}
+      {pwTarget && (
+        <Modal title={`🔒 تغيير كلمة سر: ${pwTarget.name}`} onClose={() => { setPwTarget(null); setNewPw(""); }}>
+          <div style={{ fontSize: 12, color: COLORS.textSecondary, marginBottom: 14, lineHeight: 1.7 }}>
+            اكتب كلمة سر جديدة لهذا الحساب (لا تحتاج معرفة القديمة). سيدخل بها العضو بعد الحفظ.
+          </div>
+          <div style={{ marginBottom: 16 }}>
+            <div style={{ fontSize: 12, color: COLORS.textSecondary, marginBottom: 6, fontWeight: 600 }}>كلمة السر الجديدة</div>
+            <input value={newPw} onChange={e => setNewPw(e.target.value)} placeholder="6 خانات على الأقل"
+              onKeyDown={e => e.key === "Enter" && doResetPassword()}
+              style={{ width: "100%", background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.textPrimary, borderRadius: 10, padding: "11px 14px", fontSize: 14, boxSizing: "border-box" }} />
+          </div>
+          <div style={{ display: "flex", gap: 10 }}>
+            <button onClick={() => { setPwTarget(null); setNewPw(""); }} style={{ flex: 1, padding: "12px", borderRadius: 11, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.textSecondary, fontWeight: 700, cursor: "pointer" }}>إلغاء</button>
+            <button onClick={doResetPassword} style={{ flex: 2, padding: "12px", borderRadius: 11, background: COLORS.accent, border: "none", color: "#000", fontWeight: 800, cursor: "pointer" }}>✅ حفظ كلمة السر</button>
           </div>
         </Modal>
       )}

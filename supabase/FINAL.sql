@@ -41,8 +41,10 @@ create table public.users (
   permissions jsonb default '{}'::jsonb, medical jsonb default '{}'::jsonb, ratings jsonb default '{}'::jsonb,
   birth_date text, parent_name text, parent_phone text, subscription_start text, subscription_end text,
   membership_number text, category text, contract_signed boolean default false, contract_signed_at timestamptz,
-  hidden boolean default false, is_demo boolean default false
+  hidden boolean default false, is_demo boolean default false,
+  membership_no integer unique
 );
+create sequence if not exists member_seq start 10000;
 create index users_auth_uid_idx on public.users(auth_uid);
 create table public.products (id bigint generated always as identity primary key, name text not null, price numeric default 0, category text, img text, images jsonb default '[]'::jsonb);
 create table public.settings (key text primary key, value text);
@@ -165,3 +167,41 @@ select create_academy_account('111','111','حساب مبرمج',   'مبرمج',
 select create_academy_account('222','222','مدرب مبرمج',   'مدرب',    true);
 select create_academy_account('333','333','لاعب مبرمج',   'لاعب',    true, null, '222');
 select create_academy_account('444','444','ولي امر مبرمج','ولي أمر', true, '333', null);
+
+-- الحسابات الخاصة تبقى بأرقامها كأرقام عضوية للدخول
+update public.users set membership_no = id::integer where id in ('111','222','333','444');
+
+-- ── 7) دوال العضوية وكلمات السر (يستدعيها التطبيق) ──
+-- إنشاء عضو: يخصّص رقم عضوية (10000+) ويُنشئ حساب مصادقة بريده = رقم العضوية
+create or replace function create_member(
+  p_id text, p_pass text, p_name text, p_role text, p_hidden boolean default false
+) returns integer as $$
+declare v_no integer; v_email text; v_uid uuid;
+begin
+  if not is_admin() then raise exception 'غير مصرّح'; end if;
+  if exists (select 1 from public.users where id = p_id) then raise exception 'رقم الهوية مستخدم مسبقًا'; end if;
+  v_no := nextval('member_seq');
+  v_email := v_no || '@academy.local';
+  v_uid := gen_random_uuid();
+  insert into auth.users (instance_id,id,aud,role,email,encrypted_password,email_confirmed_at,created_at,updated_at,raw_app_meta_data,raw_user_meta_data,confirmation_token,recovery_token,email_change_token_new,email_change)
+  values ('00000000-0000-0000-0000-000000000000',v_uid,'authenticated','authenticated',v_email,crypt(p_pass,gen_salt('bf')),now(),now(),now(),'{"provider":"email","providers":["email"]}'::jsonb,'{}'::jsonb,'','','','');
+  insert into auth.identities (provider_id,user_id,identity_data,provider,last_sign_in_at,created_at,updated_at)
+  values (v_uid::text,v_uid,jsonb_build_object('sub',v_uid::text,'email',v_email,'email_verified',true),'email',now(),now(),now());
+  insert into public.users (id,auth_uid,membership_no,name,role,custom_role,status,hidden,permissions,points,attendance)
+  values (p_id,v_uid,v_no,p_name,p_role,p_role,'نشط',p_hidden,'{}'::jsonb,0,0);
+  return v_no;
+end;
+$$ language plpgsql security definer;
+
+-- إعادة تعيين كلمة سر أي عضو بدون معرفة القديمة (للمدير/المبرمج فقط)
+create or replace function reset_member_password(p_user_id text, p_new_pass text)
+returns void as $$
+declare v_uid uuid;
+begin
+  if not is_admin() then raise exception 'غير مصرّح'; end if;
+  if length(coalesce(p_new_pass,'')) < 6 then raise exception 'كلمة السر يجب أن تكون 6 خانات على الأقل'; end if;
+  select auth_uid into v_uid from public.users where id = p_user_id;
+  if v_uid is null then raise exception 'الحساب غير موجود'; end if;
+  update auth.users set encrypted_password = crypt(p_new_pass, gen_salt('bf')), updated_at = now() where id = v_uid;
+end;
+$$ language plpgsql security definer;

@@ -85,6 +85,7 @@ export function HomePage({ onNav, user, users, notifications = [], directorMsg, 
               <Avatar letter={user.name[0]} size={44} color={user.role === "مدير" ? COLORS.purple : user.role === "مدرب" ? COLORS.accentGold : user.role === "ولي أمر" ? COLORS.accentBlue : COLORS.accent} />
               <div>
                 <div style={{ fontSize: 15, fontWeight: 800, color: COLORS.textPrimary }}>{user.name}</div>
+                {user.membership_no != null && <div style={{ fontSize: 12, color: COLORS.accent, fontWeight: 700, marginTop: 1 }}>🎫 رقم العضوية: {user.membership_no}</div>}
                 <div style={{ fontSize: 12, color: COLORS.textSecondary }}>{user.customRole || user.role}{user.position !== "-" ? ` · ${user.position}` : ""}</div>
                 {user.membership !== "-" && <div style={{ marginTop: 4 }}><Badge text={`عضوية ${user.membership}`} color={COLORS.accentGold} /></div>}
               </div>

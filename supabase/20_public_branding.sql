@@ -12,4 +12,4 @@
 
 drop policy if exists settings_public_read on public.settings;
 create policy settings_public_read on public.settings for select to anon
-  using (key in ('logo_url', 'theme_colors', 'hero_background'));
+  using (key in ('logo_url', 'theme_colors', 'hero_background', 'brand'));

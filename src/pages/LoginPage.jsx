@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { signIn } from "../lib/auth";
 import { COLORS } from "../constants/colors";
-import { BRAND_NAME, BRAND_TAGLINE } from "../constants/brand";
+import { BRAND } from "../constants/brand";
 import { useWindowSize } from "../hooks/useWindowSize";
 import { Logo } from "../components/Logo";
 
@@ -21,12 +21,7 @@ export function LoginPage({ onLogin, logoUrl }) {
     setLoading(false);
   };
 
-  const features = [
-    ["⚽", "متابعة اللاعبين", "تقييمات وحضور وملاحظات"],
-    ["💳", "الاشتراكات", "باقات ومدفوعات إلكترونية"],
-    ["📢", "الفعاليات والرسائل", "تواصل مباشر مع الأعضاء"],
-    ["🎫", "حضور بالباركود", "تسجيل سريع وآمن"],
-  ];
+  const features = BRAND.features;
 
   return (
     <div style={{ minHeight: "100vh", background: COLORS.darkBg, display: "flex", alignItems: "center", justifyContent: "center", padding: 24, fontFamily: "'Cairo',sans-serif", direction: "rtl" }}>
@@ -36,8 +31,8 @@ export function LoginPage({ onLogin, logoUrl }) {
         {isDesktop && (
           <div style={{ flex: 1, textAlign: "center" }}>
             <div style={{ margin: "0 auto 20px", filter: "drop-shadow(0 0 40px #1fc7c766)" }}><Logo size={110} src={logoUrl} /></div>
-            <div style={{ fontSize: 32, fontWeight: 900, color: COLORS.textPrimary, marginBottom: 6 }}>{BRAND_NAME}</div>
-            <div style={{ fontSize: 13, color: COLORS.accent, letterSpacing: 3, marginBottom: 28 }}>{BRAND_TAGLINE}</div>
+            <div style={{ fontSize: 32, fontWeight: 900, color: COLORS.textPrimary, marginBottom: 6 }}>{BRAND.name}</div>
+            <div style={{ fontSize: 13, color: COLORS.accent, letterSpacing: 3, marginBottom: 28 }}>{BRAND.tagline}</div>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
               {features.map(([icon, title, sub], i) => (
                 <div key={i} style={{ background: COLORS.cardBg, border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: "16px 14px", textAlign: "center" }}>
@@ -54,7 +49,7 @@ export function LoginPage({ onLogin, logoUrl }) {
           {!isDesktop && (
             <div style={{ textAlign: "center", marginBottom: 24 }}>
               <div style={{ margin: "0 auto 10px" }}><Logo size={76} src={logoUrl} /></div>
-              <div style={{ fontSize: 20, fontWeight: 900, color: COLORS.textPrimary }}>{BRAND_NAME}</div>
+              <div style={{ fontSize: 20, fontWeight: 900, color: COLORS.textPrimary }}>{BRAND.name}</div>
             </div>
           )}
 

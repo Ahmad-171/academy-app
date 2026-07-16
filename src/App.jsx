@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import { supabase } from "./lib/supabase";
 import { currentUserFromSession, signOut as authSignOut, onAuthChange, changeMyPassword } from "./lib/auth";
 import { COLORS, applyTheme, resetTheme, DEFAULT_COLORS } from "./constants/colors";
-import { BRAND_NAME, BRAND_TAGLINE } from "./constants/brand";
+import { BRAND, applyBrand } from "./constants/brand";
 import { ROLE_TABS, ALL_TABS, SUBSCRIPTION_PLANS, isManager } from "./constants/data";
 import { useWindowSize } from "./hooks/useWindowSize";
 import { Avatar, Modal } from "./components/ui";
@@ -41,6 +41,8 @@ export default function App() {
   const [loading, setLoading]             = useState(true);
   // تطبيق الألوان المحفوظة محليًا فورًا عند الفتح (قبل تحميل الإعدادات)
   const [themeTick, setThemeTick]         = useState(() => { try { const t = localStorage.getItem("nz_theme"); if (t) applyTheme(JSON.parse(t)); } catch { /* افتراضي */ } return 0; });
+  // تطبيق هوية الموقع (الاسم/البطاقات) المحفوظة محليًا فورًا لتظهر في شاشة الدخول
+  const [brandTick, setBrandTick]         = useState(() => { try { const b = localStorage.getItem("nz_brand"); if (b) applyBrand(JSON.parse(b)); } catch { /* افتراضي */ } return 0; });
   const [pwModal, setPwModal]             = useState(false);
   const [myNewPw, setMyNewPw]             = useState("");
   const [pwMsg, setPwMsg]                 = useState("");
@@ -101,6 +103,8 @@ export default function App() {
         if (logo) { setLogoUrl(logo.value || ""); try { localStorage.setItem("nz_logo", logo.value || ""); } catch {} }
         const theme = settingsData.find(s => s.key === 'theme_colors');
         if (theme) { try { applyTheme(JSON.parse(theme.value)); setThemeTick(t => t + 1); localStorage.setItem("nz_theme", theme.value); } catch { /* ألوان افتراضية */ } }
+        const brand = settingsData.find(s => s.key === 'brand');
+        if (brand) { try { applyBrand(JSON.parse(brand.value)); setBrandTick(t => t + 1); localStorage.setItem("nz_brand", brand.value); } catch { /* افتراضي */ } }
         const at = settingsData.find(s => s.key === 'about_terms');
         if (at) { try { setAboutTerms(JSON.parse(at.value)); } catch { /* افتراضي */ } }
         const ap = settingsData.find(s => s.key === 'about_privacy');
@@ -115,12 +119,14 @@ export default function App() {
   // شعار وألوان الموقع «عامة القراءة» — تُجلب قبل تسجيل الدخول لتظهر
   // في شاشة التحميل وصفحة الدخول من أول زيارة على أي جهاز.
   const loadPublicBranding = useCallback(async () => {
-    const { data } = await supabase.from('settings').select('key,value').in('key', ['logo_url', 'theme_colors']);
+    const { data } = await supabase.from('settings').select('key,value').in('key', ['logo_url', 'theme_colors', 'brand']);
     if (!data) return;
     const logo = data.find(s => s.key === 'logo_url');
     if (logo) { setLogoUrl(logo.value || ""); try { localStorage.setItem("nz_logo", logo.value || ""); } catch {} }
     const theme = data.find(s => s.key === 'theme_colors');
     if (theme) { try { applyTheme(JSON.parse(theme.value)); setThemeTick(t => t + 1); localStorage.setItem("nz_theme", theme.value); } catch { /* افتراضي */ } }
+    const brand = data.find(s => s.key === 'brand');
+    if (brand) { try { applyBrand(JSON.parse(brand.value)); setBrandTick(t => t + 1); localStorage.setItem("nz_brand", brand.value); } catch { /* افتراضي */ } }
   }, []);
 
   // استعادة الجلسة عند فتح الموقع: إن كان هناك تسجيل دخول سابق نحمّل بياناته،
@@ -151,6 +157,15 @@ export default function App() {
   const saveSubscriptionPlans = async (plans) => {
     setSubscriptionPlans(plans);
     await supabase.from('settings').upsert({ key: 'subscription_plans', value: JSON.stringify(plans) });
+  };
+
+  // ── حفظ هوية الموقع: الاسم والشعار النصي وبطاقات شاشة الدخول (من حساب المبرمج) ──
+  const saveBrand = async (b) => {
+    applyBrand(b);
+    setBrandTick(t => t + 1);
+    const value = JSON.stringify({ name: BRAND.name, tagline: BRAND.tagline, features: BRAND.features });
+    try { localStorage.setItem("nz_brand", value); } catch { /* تجاهل */ }
+    await supabase.from('settings').upsert({ key: 'brand', value });
   };
 
   // ── حفظ الشروط وسياسة الخصوصية (من حساب المبرمج) ──
@@ -210,7 +225,7 @@ export default function App() {
 
   const renderPage = () => {
     switch (active) {
-      case "home":          return <HomePage onNav={setActive} user={liveUser} users={users} notifications={notifications} directorMsg={directorMsg} setDirectorMsg={saveDirectorMsg} heroBg={heroBg} setHeroBg={saveHeroBg} logoUrl={logoUrl} setLogo={saveLogo} />;
+      case "home":          return <HomePage onNav={setActive} user={liveUser} users={users} notifications={notifications} directorMsg={directorMsg} setDirectorMsg={saveDirectorMsg} heroBg={heroBg} setHeroBg={saveHeroBg} logoUrl={logoUrl} setLogo={saveLogo} saveBrand={saveBrand} />;
       case "players":       return <PlayersRegistryPage user={liveUser} users={users} setUsers={setUsers} loadData={loadData} />;
       case "store":         return <StorePage products={products} setProducts={setProducts} user={liveUser} />;
       case "notifications": return <NotificationsPage user={liveUser} notifications={notifications} setNotifications={setNotifications} />;
@@ -221,7 +236,7 @@ export default function App() {
       case "myrecord":      return <MyRecordPage user={liveUser} />;
       case "library":       return <LibraryPage user={liveUser} library={library} setLibrary={setLibrary} />;
       case "admin":         return hasAdminAccess ? <AdminPage user={liveUser} users={users} setUsers={setUsers} products={products} setProducts={setProducts} loadData={loadData} subscriptionPlans={subscriptionPlans} saveSubscriptionPlans={saveSubscriptionPlans} saveTheme={saveTheme} resetThemeAll={resetThemeAll} /> : <HomePage onNav={setActive} user={liveUser} users={users} notifications={notifications} directorMsg={directorMsg} setDirectorMsg={saveDirectorMsg} heroBg={heroBg} setHeroBg={saveHeroBg} logoUrl={logoUrl} setLogo={saveLogo} />;
-      default:              return <HomePage onNav={setActive} user={liveUser} users={users} notifications={notifications} directorMsg={directorMsg} setDirectorMsg={saveDirectorMsg} heroBg={heroBg} setHeroBg={saveHeroBg} logoUrl={logoUrl} setLogo={saveLogo} />;
+      default:              return <HomePage onNav={setActive} user={liveUser} users={users} notifications={notifications} directorMsg={directorMsg} setDirectorMsg={saveDirectorMsg} heroBg={heroBg} setHeroBg={saveHeroBg} logoUrl={logoUrl} setLogo={saveLogo} saveBrand={saveBrand} />;
     }
   };
   if (loading) return (
@@ -243,7 +258,7 @@ export default function App() {
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
           <Logo size={34} src={logoUrl} />
           <div>
-            <div style={{ fontSize: 14, fontWeight: 800, color: COLORS.textPrimary }}>{BRAND_NAME}</div>
+            <div style={{ fontSize: 14, fontWeight: 800, color: COLORS.textPrimary }}>{BRAND.name}</div>
             <div style={{ fontSize: 10, color: COLORS.accent }}>{liveUser.name}</div>
           </div>
         </div>
@@ -273,8 +288,8 @@ export default function App() {
               <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
                 <Logo size={40} src={logoUrl} />
                 <div>
-                  <div style={{ fontSize: 14, fontWeight: 800, color: COLORS.textPrimary }}>{BRAND_NAME}</div>
-                  <div style={{ fontSize: 9, color: COLORS.accent, letterSpacing: 1 }}>{BRAND_TAGLINE}</div>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: COLORS.textPrimary }}>{BRAND.name}</div>
+                  <div style={{ fontSize: 9, color: COLORS.accent, letterSpacing: 1 }}>{BRAND.tagline}</div>
                 </div>
               </div>
 
@@ -334,7 +349,7 @@ export default function App() {
               <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
                 <Logo size={32} src={logoUrl} />
                 <div>
-                  <div style={{ fontSize: 13, fontWeight: 800, color: COLORS.textPrimary }}>{BRAND_NAME}</div>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: COLORS.textPrimary }}>{BRAND.name}</div>
                   <div style={{ fontSize: 9, color: COLORS.accent }}>{liveUser.customRole || liveUser.role}: {liveUser.name}</div>
                 </div>
               </div>

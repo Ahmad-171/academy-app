@@ -2,20 +2,22 @@ import { useState, useEffect } from "react";
 import { uploadMedia } from "../lib/media";
 import { COLORS } from "../constants/colors";
 import { isManager } from "../constants/data";
-import { BRAND_NAME, BRAND_TAGLINE } from "../constants/brand";
+import { BRAND } from "../constants/brand";
 import { useWindowSize } from "../hooks/useWindowSize";
-import { StatCard, Avatar, Badge } from "../components/ui";
+import { StatCard, Avatar, Badge, Modal } from "../components/ui";
 import { Logo } from "../components/Logo";
 
 const NOTIF_ICONS  = { match: "⚽", absence: "❌", payment: "💳", award: "⭐", training: "🏃", general: "📢" };
 const NOTIF_COLORS = (C) => ({ match: C.warning, absence: C.danger, payment: C.accentBlue, award: C.accentGold, training: C.accent, general: C.purple });
 
-export function HomePage({ onNav, user, users, notifications = [], directorMsg, setDirectorMsg, heroBg, setHeroBg, logoUrl, setLogo }) {
+export function HomePage({ onNav, user, users, notifications = [], directorMsg, setDirectorMsg, heroBg, setHeroBg, logoUrl, setLogo, saveBrand }) {
   const [visible, setVisible] = useState(false);
   const [editMsg, setEditMsg] = useState(false);
   const [tempMsg, setTempMsg] = useState(directorMsg);
   const [bgUploading, setBgUploading] = useState(false);
   const [logoUploading, setLogoUploading] = useState(false);
+  const [brandModal, setBrandModal] = useState(false);
+  const [brandDraft, setBrandDraft] = useState(null);
   const { isDesktop } = useWindowSize();
   useEffect(() => { setTimeout(() => setVisible(true), 100); }, []);
 
@@ -47,6 +49,29 @@ export function HomePage({ onNav, user, users, notifications = [], directorMsg, 
     setLogoUploading(false);
   };
 
+  // فتح محرّر هوية الموقع (الاسم/الشعار النصي/بطاقات شاشة الدخول) — للمبرمج
+  const openBrandEditor = () => {
+    setBrandDraft({
+      name: BRAND.name,
+      tagline: BRAND.tagline,
+      features: BRAND.features.map(f => [...f]),
+    });
+    setBrandModal(true);
+  };
+  const setFeat = (i, j, v) => setBrandDraft(d => {
+    const features = d.features.map(f => [...f]);
+    features[i][j] = v;
+    return { ...d, features };
+  });
+  const submitBrand = async () => {
+    await saveBrand?.({
+      name: brandDraft.name.trim() || BRAND.name,
+      tagline: brandDraft.tagline,
+      features: brandDraft.features,
+    });
+    setBrandModal(false);
+  };
+
   return (
     <div style={{ padding: isDesktop ? "32px" : "0 0 40px" }}>
       {/* Hero */}
@@ -76,8 +101,13 @@ export function HomePage({ onNav, user, users, notifications = [], directorMsg, 
                 )}
               </div>
               <div>
-                <div style={{ fontSize: isDesktop ? 26 : 20, fontWeight: 900, color: COLORS.textPrimary }}>{BRAND_NAME}</div>
-                <div style={{ fontSize: 11, color: COLORS.accent, letterSpacing: 2, marginTop: 2 }}>{BRAND_TAGLINE}</div>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <div style={{ fontSize: isDesktop ? 26 : 20, fontWeight: 900, color: COLORS.textPrimary }}>{BRAND.name}</div>
+                  {canEditBranding && (
+                    <button onClick={openBrandEditor} title="تعديل هوية الموقع" style={{ background: "#ffffff14", border: "1px solid #ffffff26", color: "#fff", borderRadius: 8, padding: "3px 9px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>✎ الاسم والبطاقات</button>
+                  )}
+                </div>
+                <div style={{ fontSize: 11, color: COLORS.accent, letterSpacing: 2, marginTop: 2 }}>{BRAND.tagline}</div>
               </div>
             </div>
             {/* بطاقة المستخدم */}
@@ -155,6 +185,39 @@ export function HomePage({ onNav, user, users, notifications = [], directorMsg, 
           <button onClick={() => onNav("memberships")} style={{ padding: "12px 20px", background: `${COLORS.accentGold}18`, border: `1px solid ${COLORS.accentGold}44`, color: COLORS.accentGold, borderRadius: 12, fontWeight: 800, fontSize: 13, cursor: "pointer" }}>💎 العضويات</button>
         </div>
       </div>
+
+      {/* محرّر هوية الموقع — للمبرمج فقط */}
+      {brandModal && brandDraft && (
+        <Modal title="🖥️ تعديل هوية الموقع" onClose={() => setBrandModal(false)}>
+          <div style={{ fontSize: 12, color: COLORS.textSecondary, marginBottom: 4, fontWeight: 600 }}>اسم الأكاديمية</div>
+          <input value={brandDraft.name} onChange={e => setBrandDraft(d => ({ ...d, name: e.target.value }))} placeholder="مثال: أكاديمية النجوم"
+            style={{ width: "100%", background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.textPrimary, borderRadius: 10, padding: "10px 12px", fontSize: 14, boxSizing: "border-box", marginBottom: 14 }} />
+
+          <div style={{ fontSize: 12, color: COLORS.textSecondary, marginBottom: 4, fontWeight: 600 }}>الوصف (تحت الاسم)</div>
+          <input value={brandDraft.tagline} onChange={e => setBrandDraft(d => ({ ...d, tagline: e.target.value }))} placeholder="مثال: أكاديمية كرة القدم"
+            style={{ width: "100%", background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.textPrimary, borderRadius: 10, padding: "10px 12px", fontSize: 14, boxSizing: "border-box", marginBottom: 18 }} />
+
+          <div style={{ fontSize: 13, color: COLORS.textPrimary, marginBottom: 4, fontWeight: 800 }}>بطاقات شاشة الدخول</div>
+          <div style={{ fontSize: 11, color: COLORS.textSecondary, marginBottom: 12 }}>الأربع بطاقات التي تظهر في صفحة تسجيل الدخول</div>
+          {brandDraft.features.map((f, i) => (
+            <div key={i} style={{ background: COLORS.surface, border: `1px solid ${COLORS.border}`, borderRadius: 12, padding: 12, marginBottom: 10 }}>
+              <div style={{ display: "flex", gap: 8 }}>
+                <input value={f[0]} onChange={e => setFeat(i, 0, e.target.value)} placeholder="🎯" title="الأيقونة (إيموجي)"
+                  style={{ width: 54, textAlign: "center", background: COLORS.cardBg, border: `1px solid ${COLORS.border}`, color: COLORS.textPrimary, borderRadius: 9, padding: "9px 6px", fontSize: 18, boxSizing: "border-box" }} />
+                <input value={f[1]} onChange={e => setFeat(i, 1, e.target.value)} placeholder="العنوان"
+                  style={{ flex: 1, background: COLORS.cardBg, border: `1px solid ${COLORS.border}`, color: COLORS.textPrimary, borderRadius: 9, padding: "9px 12px", fontSize: 13, boxSizing: "border-box" }} />
+              </div>
+              <input value={f[2]} onChange={e => setFeat(i, 2, e.target.value)} placeholder="الوصف المختصر"
+                style={{ width: "100%", marginTop: 8, background: COLORS.cardBg, border: `1px solid ${COLORS.border}`, color: COLORS.textSecondary, borderRadius: 9, padding: "9px 12px", fontSize: 12, boxSizing: "border-box" }} />
+            </div>
+          ))}
+
+          <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+            <button onClick={() => setBrandModal(false)} style={{ flex: 1, padding: "11px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.textSecondary, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>إلغاء</button>
+            <button onClick={submitBrand} style={{ flex: 2, padding: "11px", borderRadius: 10, background: COLORS.accent, border: "none", color: "#000", fontWeight: 800, fontSize: 13, cursor: "pointer" }}>💾 حفظ</button>
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }

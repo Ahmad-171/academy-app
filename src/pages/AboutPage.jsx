@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { supabase } from "../lib/supabase";
 import { COLORS } from "../constants/colors";
-import { BRAND_NAME } from "../constants/brand";
+import { BRAND } from "../constants/brand";
 import { useWindowSize } from "../hooks/useWindowSize";
 import { useToast } from "../hooks/useToast";
 import { ToastMsg } from "../components/ui";
@@ -81,7 +81,7 @@ export function AboutPage({ user, setUsers, terms, privacy, saveTerms, savePriva
   return (
     <div style={{ padding: isDesktop ? "32px" : "16px" }}>
       {toast && <ToastMsg msg={toast.msg} color={toast.color} />}
-      <div style={{ fontSize: isDesktop ? 22 : 18, fontWeight: 800, color: COLORS.textPrimary, marginBottom: 4 }}>ℹ️ حول {BRAND_NAME}</div>
+      <div style={{ fontSize: isDesktop ? 22 : 18, fontWeight: 800, color: COLORS.textPrimary, marginBottom: 4 }}>ℹ️ حول {BRAND.name}</div>
       <div style={{ fontSize: 13, color: COLORS.textSecondary, marginBottom: 20 }}>شروط الانضمام وعقد الاشتراك</div>
 
       <div style={{ maxWidth: 640 }}>

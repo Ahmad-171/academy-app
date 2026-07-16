@@ -44,7 +44,8 @@ create table public.users (
   hidden boolean default false, is_demo boolean default false,
   membership_no integer unique
 );
-create sequence if not exists member_seq start 10000;
+create sequence if not exists member_seq start 10000;  -- أرقام عضوية اللاعبين
+create sequence if not exists coach_seq  start 1000;   -- أرقام عضوية المدربين
 create index users_auth_uid_idx on public.users(auth_uid);
 create table public.products (id bigint generated always as identity primary key, name text not null, price numeric default 0, category text, img text, images jsonb default '[]'::jsonb);
 create table public.settings (key text primary key, value text);
@@ -176,16 +177,25 @@ select create_academy_account('444','444','ولي امر مبرمج','ولي أ�
 update public.users set membership_no = id::integer where id in ('111','222','333','444');
 
 -- ── 7) دوال العضوية وكلمات السر (يستدعيها التطبيق) ──
--- إنشاء عضو: يخصّص رقم عضوية (10000+) ويُنشئ حساب مصادقة بريده = رقم العضوية
+-- إنشاء عضو حسب الدور:
+--   لاعب  → رقم عضوية يبدأ من 10000، والدخول برقم العضوية
+--   مدرب  → رقم عضوية يبدأ من 1000،  والدخول برقم العضوية
+--   غيره (ولي أمر…) → بدون رقم عضوية، والدخول برقم الهوية
 create or replace function create_member(
   p_id text, p_pass text, p_name text, p_role text, p_hidden boolean default false
 ) returns integer as $$
-declare v_no integer; v_email text; v_uid uuid;
+declare v_no integer; v_login text; v_email text; v_uid uuid;
 begin
   if not is_admin() then raise exception 'غير مصرّح'; end if;
   if exists (select 1 from public.users where id = p_id) then raise exception 'رقم الهوية مستخدم مسبقًا'; end if;
-  v_no := nextval('member_seq');
-  v_email := v_no || '@academy.local';
+  if p_role = 'لاعب' then
+    v_no := nextval('member_seq'); v_login := v_no::text;
+  elsif p_role = 'مدرب' then
+    v_no := nextval('coach_seq');  v_login := v_no::text;
+  else
+    v_no := null; v_login := p_id;   -- ولي الأمر وغيره: الدخول برقم الهوية
+  end if;
+  v_email := v_login || '@academy.local';
   v_uid := gen_random_uuid();
   insert into auth.users (instance_id,id,aud,role,email,encrypted_password,email_confirmed_at,created_at,updated_at,raw_app_meta_data,raw_user_meta_data,confirmation_token,recovery_token,email_change_token_new,email_change)
   values ('00000000-0000-0000-0000-000000000000',v_uid,'authenticated','authenticated',v_email,crypt(p_pass,gen_salt('bf')),now(),now(),now(),'{"provider":"email","providers":["email"]}'::jsonb,'{}'::jsonb,'','','','');

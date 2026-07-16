@@ -55,11 +55,11 @@ export function LoginPage({ onLogin, logoUrl }) {
 
           <div style={{ background: COLORS.cardBg, border: `1px solid ${COLORS.border}`, borderRadius: 22, padding: 26 }}>
             <div style={{ fontSize: 19, fontWeight: 800, color: COLORS.textPrimary, marginBottom: 3 }}>تسجيل الدخول</div>
-            <div style={{ fontSize: 12, color: COLORS.textSecondary, marginBottom: 22 }}>أدخل رقم العضوية وكلمة السر</div>
+            <div style={{ fontSize: 12, color: COLORS.textSecondary, marginBottom: 22 }}>أدخل رقم العضوية (أو رقم الهوية لأولياء الأمور) وكلمة السر</div>
 
             <div style={{ marginBottom: 13 }}>
-              <div style={{ fontSize: 12, color: COLORS.textSecondary, marginBottom: 5, fontWeight: 600 }}>رقم العضوية</div>
-              <input value={idNum} onChange={e => setIdNum(e.target.value)} placeholder="أدخل رقم العضوية"
+              <div style={{ fontSize: 12, color: COLORS.textSecondary, marginBottom: 5, fontWeight: 600 }}>رقم العضوية / الهوية</div>
+              <input value={idNum} onChange={e => setIdNum(e.target.value)} placeholder="أدخل رقم العضوية أو الهوية"
                 onKeyDown={e => e.key === "Enter" && idNum && pass && handleLogin()}
                 style={{ width: "100%", background: COLORS.surface, border: `1px solid ${error ? COLORS.danger : COLORS.border}`, color: COLORS.textPrimary, borderRadius: 11, padding: "11px 14px", fontSize: 14, boxSizing: "border-box" }} />
             </div>

@@ -252,7 +252,7 @@ export default function App() {
   // بوابة العقد: المشترك (لاعب/ولي أمر) لا يستخدم حسابه إلا بعد توقيع العقد
   const needsContract = (liveUser.role === "لاعب" || liveUser.role === "ولي أمر") && !liveUser.contract_signed;
   if (needsContract) return (
-    <div data-theme-tick={themeTick} style={{ minHeight: "100vh", background: COLORS.darkBg, fontFamily: "'Cairo',sans-serif", direction: "rtl", color: COLORS.textPrimary }}>
+    <div data-theme-tick={themeTick} data-brand-tick={brandTick} style={{ minHeight: "100vh", background: COLORS.darkBg, fontFamily: "'Cairo',sans-serif", direction: "rtl", color: COLORS.textPrimary }}>
       <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
       <div style={{ background: COLORS.cardBg, borderBottom: `1px solid ${COLORS.border}`, padding: "12px 18px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
         <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
@@ -274,7 +274,7 @@ export default function App() {
   );
 
   return (
-    <div data-theme-tick={themeTick} style={{ minHeight: "100vh", background: COLORS.darkBg, fontFamily: "'Cairo',sans-serif", direction: "rtl", color: COLORS.textPrimary, overflowX: "hidden" }}>
+    <div data-theme-tick={themeTick} data-brand-tick={brandTick} style={{ minHeight: "100vh", background: COLORS.darkBg, fontFamily: "'Cairo',sans-serif", direction: "rtl", color: COLORS.textPrimary, overflowX: "hidden" }}>
       <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&display=swap" rel="stylesheet" />
 
       <div style={{ display: "flex", minHeight: "100vh" }}>

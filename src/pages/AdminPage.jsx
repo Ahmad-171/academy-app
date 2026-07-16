@@ -229,7 +229,9 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
         },
       });
       if (error) { show(`⚠️ خطأ: ${error}`, COLORS.danger); return; }
-      show(`✅ تم إضافة الحساب — رقم العضوية للدخول: ${membershipNo}`);
+      show(membershipNo != null
+        ? `✅ تم إضافة الحساب — رقم العضوية للدخول: ${membershipNo}`
+        : `✅ تم إضافة الحساب — الدخول برقم الهوية: ${form.id.trim()}`);
     }
     await loadData();
     setModal(null);

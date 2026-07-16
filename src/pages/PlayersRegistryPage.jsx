@@ -83,7 +83,7 @@ export function PlayersRegistryPage({ user, users, setUsers, loadData }) {
       if (users.find(u => u.id === form.id)) {
         show("⚠️ رقم الهوية مستخدم مسبقاً", COLORS.warning); return;
       }
-      const { error } = await createAccount({
+      const { error, membershipNo } = await createAccount({
         id: form.id.trim(), password: form.password.trim(),
         profile: {
           role: "لاعب", custom_role: "لاعب",
@@ -94,7 +94,7 @@ export function PlayersRegistryPage({ user, users, setUsers, loadData }) {
         },
       });
       if (error) { show(`⚠️ خطأ: ${error}`, COLORS.danger); return; }
-      show("✅ تم تسجيل اللاعب");
+      show(`✅ تم تسجيل اللاعب — رقم العضوية للدخول: ${membershipNo}`);
     }
     await loadData();
     setFormModal(false);

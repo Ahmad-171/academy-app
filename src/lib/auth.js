@@ -40,8 +40,9 @@ export function onAuthChange(cb) {
 }
 
 // إنشاء حساب جديد (يستدعيه المدير). يتم عبر دالة create_member في القاعدة:
-// تخصّص رقم عضوية (يبدأ من 10000)، وتُنشئ حساب المصادقة بريده = رقم العضوية،
-// ثم نُكمّل باقي بيانات الملف. لا يمرّ على بريد التأكيد (لا حدود إرسال).
+// اللاعب يأخذ رقم عضوية من 10000، المدرب من 1000 (والدخول برقم العضوية)،
+// وولي الأمر بدون رقم عضوية (الدخول برقم الهوية). ثم نُكمّل باقي بيانات الملف.
+// membershipNo يكون null لأولياء الأمور. لا يمرّ على بريد التأكيد (لا حدود إرسال).
 export async function createAccount({ id, password, profile }) {
   const { data: membershipNo, error } = await supabase.rpc("create_member", {
     p_id: id, p_pass: password, p_name: profile.name, p_role: profile.role, p_hidden: !!profile.hidden,

@@ -6,7 +6,7 @@ import { useWindowSize } from "../hooks/useWindowSize";
 import { useToast } from "../hooks/useToast";
 import { ToastMsg } from "../components/ui";
 
-const TERMS = [
+export const DEFAULT_TERMS = [
   "يلتزم المشترك بالحضور في المواعيد المحددة من الأكاديمية.",
   "يحق للأكاديمية إيقاف الاشتراك في حالة الإخلال بالنظام الداخلي.",
   "لا يُسترد الاشتراك المدفوع إلا في حالات الإصابة الموثقة طبيًا.",
@@ -16,7 +16,7 @@ const TERMS = [
   "لا يُفعَّل الحساب بشكل كامل إلا بعد التوقيع الإلكتروني على هذه الشروط.",
 ];
 
-const PRIVACY = [
+export const DEFAULT_PRIVACY = [
   "نجمع البيانات اللازمة فقط لإدارة العضوية: الاسم، رقم الهوية، رقم الجوال، تاريخ الميلاد، وبيانات ولي الأمر.",
   "تُستخدم البيانات الصحية لضمان سلامة اللاعب أثناء التدريب، ولا يطّلع عليها إلا الإدارة والطاقم الطبي.",
   "لا نبيع أو نشارك بياناتك مع أي جهة خارجية لأغراض تسويقية.",
@@ -25,12 +25,47 @@ const PRIVACY = [
   "تُحفظ بيانات اللاعب طوال مدة العضوية وتُحذف عند الطلب أو بعد انتهاء العلاقة بفترة معقولة.",
 ];
 
-export function AboutPage({ user, setUsers }) {
+// محرّر بسيط لقائمة نصوص (بند لكل سطر) — يظهر لحساب المبرمج فقط
+function EditableList({ title, subtitle, items, accent, canEdit, onSave }) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
+  const start = () => { setDraft((items || []).join("\n")); setEditing(true); };
+  const save = () => { onSave(draft.split("\n").map(s => s.trim()).filter(Boolean)); setEditing(false); };
+  return (
+    <div style={{ background: COLORS.cardBg, border: `1px solid ${COLORS.border}`, borderRadius: 16, padding: 22, marginBottom: 16 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: subtitle ? 6 : 14 }}>
+        <div style={{ fontSize: 16, fontWeight: 800, color: COLORS.textPrimary }}>{title}</div>
+        {canEdit && !editing && <button onClick={start} style={{ background: COLORS.accentBlue + "22", border: `1px solid ${COLORS.accentBlue}44`, color: COLORS.accentBlue, borderRadius: 8, padding: "5px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>✏️ تعديل</button>}
+      </div>
+      {subtitle && <div style={{ fontSize: 12, color: COLORS.textSecondary, marginBottom: 14 }}>{subtitle}</div>}
+      {editing ? (
+        <>
+          <div style={{ fontSize: 11, color: COLORS.textSecondary, marginBottom: 6 }}>بند واحد في كل سطر:</div>
+          <textarea value={draft} onChange={e => setDraft(e.target.value)} rows={8}
+            style={{ width: "100%", background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.textPrimary, borderRadius: 10, padding: "10px", fontSize: 13, resize: "vertical", boxSizing: "border-box", lineHeight: 1.9 }} />
+          <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+            <button onClick={() => setEditing(false)} style={{ flex: 1, padding: "9px", borderRadius: 9, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.textSecondary, fontWeight: 700, fontSize: 12, cursor: "pointer" }}>إلغاء</button>
+            <button onClick={save} style={{ flex: 2, padding: "9px", borderRadius: 9, background: COLORS.accent, border: "none", color: "#000", fontWeight: 800, fontSize: 12, cursor: "pointer" }}>💾 حفظ</button>
+          </div>
+        </>
+      ) : (
+        (items || []).map((t, i) => (
+          <div key={i} style={{ fontSize: 13, color: COLORS.textSecondary, marginBottom: 10, paddingRight: 14, borderRight: `2px solid ${accent}`, lineHeight: 1.7 }}>{t}</div>
+        ))
+      )}
+    </div>
+  );
+}
+
+export function AboutPage({ user, setUsers, terms, privacy, saveTerms, savePrivacy }) {
   const [checked, setChecked] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const { isDesktop } = useWindowSize();
   const { toast, show } = useToast();
 
+  const TERMS = terms && terms.length ? terms : DEFAULT_TERMS;
+  const PRIVACY = privacy && privacy.length ? privacy : DEFAULT_PRIVACY;
+  const canEditAbout = user.role === "مبرمج";
   const signed = !!user.contract_signed;
 
   const sign = async () => {
@@ -50,12 +85,7 @@ export function AboutPage({ user, setUsers }) {
       <div style={{ fontSize: 13, color: COLORS.textSecondary, marginBottom: 20 }}>شروط الانضمام وعقد الاشتراك</div>
 
       <div style={{ maxWidth: 640 }}>
-        <div style={{ background: COLORS.cardBg, border: `1px solid ${COLORS.border}`, borderRadius: 16, padding: 22, marginBottom: 16 }}>
-          <div style={{ fontSize: 16, fontWeight: 800, color: COLORS.textPrimary, marginBottom: 14 }}>📄 شروط الانضمام والعقد</div>
-          {TERMS.map((t, i) => (
-            <div key={i} style={{ fontSize: 13, color: COLORS.textSecondary, marginBottom: 10, paddingRight: 14, borderRight: `2px solid ${COLORS.border}`, lineHeight: 1.7 }}>{t}</div>
-          ))}
-        </div>
+        <EditableList title="📄 شروط الانضمام والعقد" items={TERMS} accent={COLORS.border} canEdit={canEditAbout} onSave={(v) => { saveTerms?.(v); show("✅ تم حفظ الشروط"); }} />
 
         {signed ? (
           <div style={{ background: `${COLORS.accent}15`, border: `1px solid ${COLORS.accent}44`, borderRadius: 13, padding: "16px 18px", display: "flex", alignItems: "center", gap: 12 }}>
@@ -81,12 +111,8 @@ export function AboutPage({ user, setUsers }) {
         )}
 
         {/* سياسة الخصوصية وحماية البيانات */}
-        <div style={{ background: COLORS.cardBg, border: `1px solid ${COLORS.border}`, borderRadius: 16, padding: 22, marginTop: 20 }}>
-          <div style={{ fontSize: 16, fontWeight: 800, color: COLORS.textPrimary, marginBottom: 6 }}>🔒 سياسة الخصوصية وحماية البيانات</div>
-          <div style={{ fontSize: 12, color: COLORS.textSecondary, marginBottom: 14 }}>كيف نجمع بياناتك ونحميها</div>
-          {PRIVACY.map((t, i) => (
-            <div key={i} style={{ fontSize: 13, color: COLORS.textSecondary, marginBottom: 10, paddingRight: 14, borderRight: `2px solid ${COLORS.accent}55`, lineHeight: 1.7 }}>{t}</div>
-          ))}
+        <div style={{ marginTop: 20 }}>
+          <EditableList title="🔒 سياسة الخصوصية وحماية البيانات" subtitle="كيف نجمع بياناتك ونحميها" items={PRIVACY} accent={COLORS.accent + "55"} canEdit={canEditAbout} onSave={(v) => { savePrivacy?.(v); show("✅ تم حفظ سياسة الخصوصية"); }} />
         </div>
       </div>
     </div>

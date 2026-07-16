@@ -32,6 +32,8 @@ export default function App() {
   const [library, setLibrary]             = useState([]);
   const [products, setProducts]           = useState([]);
   const [directorMsg, setDirectorMsg]     = useState("نؤمن بأن كل موهبة تستحق الرعاية والتطوير.");
+  const [aboutTerms, setAboutTerms]       = useState(null);
+  const [aboutPrivacy, setAboutPrivacy]   = useState(null);
   const [subscriptionPlans, setSubscriptionPlans] = useState(SUBSCRIPTION_PLANS);
   const [heroBg, setHeroBg]               = useState("");
   // الشعار محفوظ محليًا ليظهر فورًا قبل تسجيل الدخول (شاشة التحميل والدخول)
@@ -99,6 +101,10 @@ export default function App() {
         if (logo) { setLogoUrl(logo.value || ""); try { localStorage.setItem("nz_logo", logo.value || ""); } catch {} }
         const theme = settingsData.find(s => s.key === 'theme_colors');
         if (theme) { try { applyTheme(JSON.parse(theme.value)); setThemeTick(t => t + 1); localStorage.setItem("nz_theme", theme.value); } catch { /* ألوان افتراضية */ } }
+        const at = settingsData.find(s => s.key === 'about_terms');
+        if (at) { try { setAboutTerms(JSON.parse(at.value)); } catch { /* افتراضي */ } }
+        const ap = settingsData.find(s => s.key === 'about_privacy');
+        if (ap) { try { setAboutPrivacy(JSON.parse(ap.value)); } catch { /* افتراضي */ } }
       }
     } catch (err) {
       console.error('Error loading data:', err);
@@ -133,6 +139,16 @@ export default function App() {
   const saveSubscriptionPlans = async (plans) => {
     setSubscriptionPlans(plans);
     await supabase.from('settings').upsert({ key: 'subscription_plans', value: JSON.stringify(plans) });
+  };
+
+  // ── حفظ الشروط وسياسة الخصوصية (من حساب المبرمج) ──
+  const saveAboutTerms = async (arr) => {
+    setAboutTerms(arr);
+    await supabase.from('settings').upsert({ key: 'about_terms', value: JSON.stringify(arr) });
+  };
+  const saveAboutPrivacy = async (arr) => {
+    setAboutPrivacy(arr);
+    await supabase.from('settings').upsert({ key: 'about_privacy', value: JSON.stringify(arr) });
   };
 
   // ── حفظ خلفية الصفحة الرئيسية ──
@@ -188,7 +204,7 @@ export default function App() {
       case "notifications": return <NotificationsPage user={liveUser} notifications={notifications} setNotifications={setNotifications} />;
       case "subscriptions": return <SubscriptionsPage user={liveUser} setUsers={setUsers} plans={subscriptionPlans} />;
       case "memberships":   return <MembershipsPage user={liveUser} />;
-      case "about":         return <AboutPage user={liveUser} setUsers={setUsers} />;
+      case "about":         return <AboutPage user={liveUser} setUsers={setUsers} terms={aboutTerms} privacy={aboutPrivacy} saveTerms={saveAboutTerms} savePrivacy={saveAboutPrivacy} />;
       case "mychild":       return <MyChildPage user={liveUser} users={users} />;
       case "myrecord":      return <MyRecordPage user={liveUser} />;
       case "library":       return <LibraryPage user={liveUser} library={library} setLibrary={setLibrary} />;
@@ -225,7 +241,7 @@ export default function App() {
         <div style={{ background: COLORS.warning + "15", border: `1px solid ${COLORS.warning}44`, borderRadius: 12, padding: "14px 18px", margin: "18px 16px 0", fontSize: 13, color: COLORS.warning, lineHeight: 1.7 }}>
           👋 مرحبًا بك! لتفعيل حسابك واستخدام الموقع، يجب الاطلاع على الشروط وتوقيع العقد أولاً.
         </div>
-        <AboutPage user={liveUser} setUsers={setUsers} />
+        <AboutPage user={liveUser} setUsers={setUsers} terms={aboutTerms} privacy={aboutPrivacy} saveTerms={saveAboutTerms} savePrivacy={saveAboutPrivacy} />
       </div>
     </div>
   );

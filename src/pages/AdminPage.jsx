@@ -60,6 +60,7 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
   const [filterRole, setFilterRole] = useState("الكل");
   const [permTarget, setPermTarget] = useState(null);
   const [productModal, setProductModal] = useState(false);
+  const [editProductId, setEditProductId] = useState(null);
   const [newProduct, setNewProduct] = useState(EMPTY_PRODUCT);
   const [codes, setCodes] = useState([]);
   const [newCode, setNewCode] = useState(EMPTY_CODE);
@@ -124,18 +125,33 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
     setNewProduct(p => ({ ...p, imageUrl: url }));
   };
 
-  const addProduct = async () => {
+  const openEditProduct = (p) => {
+    setNewProduct({ name: p.name, price: p.price, category: p.category, img: p.img || "🛍️", imageUrl: p.images?.[0] || "" });
+    setEditProductId(p.id);
+    setProductModal(true);
+  };
+
+  const saveProduct = async () => {
     if (!newProduct.name.trim() || !newProduct.price) { show("⚠️ أدخل اسم المنتج والسعر", COLORS.warning); return; }
-    const { data, error } = await supabase.from('products').insert({
+    const payload = {
       name: newProduct.name, price: Number(newProduct.price),
       category: newProduct.category, img: newProduct.img || "🛍️",
       images: newProduct.imageUrl ? [newProduct.imageUrl] : [],
-    }).select().single();
-    if (error) { show(`⚠️ ${error.message}`, COLORS.danger); return; }
-    setProducts(prev => [...prev, { ...data, images: data.images || [] }]);
+    };
+    if (editProductId) {
+      const { error } = await supabase.from('products').update(payload).eq('id', editProductId);
+      if (error) { show(`⚠️ ${error.message}`, COLORS.danger); return; }
+      setProducts(prev => prev.map(x => x.id === editProductId ? { ...x, ...payload } : x));
+      show("✅ تم تحديث المنتج");
+    } else {
+      const { data, error } = await supabase.from('products').insert(payload).select().single();
+      if (error) { show(`⚠️ ${error.message}`, COLORS.danger); return; }
+      setProducts(prev => [...prev, { ...data, images: data.images || [] }]);
+      show("✅ تم إضافة المنتج");
+    }
     setNewProduct(EMPTY_PRODUCT);
+    setEditProductId(null);
     setProductModal(false);
-    show("✅ تم إضافة المنتج");
   };
 
   const deleteProduct = async (p) => {
@@ -455,7 +471,7 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
     {/* المنتجات */}
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
       <div style={{ fontSize: 16, fontWeight: 800, color: COLORS.textPrimary }}>🛒 منتجات المتجر</div>
-      <button onClick={() => { setNewProduct(EMPTY_PRODUCT); setProductModal(true); }} style={{ padding: "8px 16px", background: COLORS.accent, border: "none", color: "#000", borderRadius: 10, fontWeight: 800, fontSize: 12, cursor: "pointer" }}>+ منتج جديد</button>
+      <button onClick={() => { setNewProduct(EMPTY_PRODUCT); setEditProductId(null); setProductModal(true); }} style={{ padding: "8px 16px", background: COLORS.accent, border: "none", color: "#000", borderRadius: 10, fontWeight: 800, fontSize: 12, cursor: "pointer" }}>+ منتج جديد</button>
     </div>
     {isDesktop && (
     <div style={{ background: COLORS.cardBg, border: `1px solid ${COLORS.border}`, borderRadius: 16, overflow: "hidden", marginBottom: 28 }}>
@@ -490,7 +506,8 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
               </td>
               <td style={{ padding: "10px 14px", textAlign: "center" }}>
                 <div style={{ display: "flex", gap: 6, justifyContent: "center" }}>
-                  <button onClick={() => saveProductPrice(p)} style={{ padding: "7px 14px", background: COLORS.accent, border: "none", color: "#000", borderRadius: 8, fontWeight: 800, fontSize: 12, cursor: "pointer" }}>💾</button>
+                  <button onClick={() => saveProductPrice(p)} title="حفظ السعر" style={{ padding: "7px 14px", background: COLORS.accent, border: "none", color: "#000", borderRadius: 8, fontWeight: 800, fontSize: 12, cursor: "pointer" }}>💾</button>
+                  <button onClick={() => openEditProduct(p)} title="تعديل المنتج" style={{ padding: "7px 14px", background: COLORS.accentBlue + "22", border: `1px solid ${COLORS.accentBlue}44`, color: COLORS.accentBlue, borderRadius: 8, fontWeight: 800, fontSize: 12, cursor: "pointer" }}>✏️</button>
                   <button onClick={() => deleteProduct(p)} style={{ padding: "7px 14px", background: COLORS.danger + "22", border: `1px solid ${COLORS.danger}44`, color: COLORS.danger, borderRadius: 8, fontWeight: 800, fontSize: 12, cursor: "pointer" }}>🗑️</button>
                 </div>
               </td>
@@ -530,7 +547,8 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
                       style={{ width: "100%", background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.accentGold, borderRadius: 8, padding: "9px 10px", fontSize: 15, fontWeight: 800, textAlign: "center", boxSizing: "border-box" }}
                     />
                   </div>
-                  <button onClick={() => saveProductPrice(p)} style={{ padding: "10px 16px", background: COLORS.accent, border: "none", color: "#000", borderRadius: 8, fontWeight: 800, fontSize: 13, cursor: "pointer" }}>💾 حفظ</button>
+                  <button onClick={() => saveProductPrice(p)} style={{ padding: "10px 14px", background: COLORS.accent, border: "none", color: "#000", borderRadius: 8, fontWeight: 800, fontSize: 13, cursor: "pointer" }}>💾</button>
+                  <button onClick={() => openEditProduct(p)} style={{ padding: "10px 14px", background: COLORS.accentBlue + "22", border: `1px solid ${COLORS.accentBlue}44`, color: COLORS.accentBlue, borderRadius: 8, fontWeight: 800, fontSize: 13, cursor: "pointer" }}>✏️ تعديل</button>
                   <button onClick={() => deleteProduct(p)} style={{ padding: "10px 14px", background: COLORS.danger + "22", border: `1px solid ${COLORS.danger}44`, color: COLORS.danger, borderRadius: 8, fontWeight: 800, fontSize: 13, cursor: "pointer" }}>🗑️</button>
                 </div>
               </div>
@@ -619,9 +637,9 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
       )}
     </div>
 
-    {/* Modal منتج جديد */}
+    {/* Modal منتج جديد/تعديل */}
     {productModal && (
-      <Modal title="➕ منتج جديد" onClose={() => setProductModal(false)}>
+      <Modal title={editProductId ? "✏️ تعديل المنتج" : "➕ منتج جديد"} onClose={() => { setProductModal(false); setEditProductId(null); }}>
         <Field label="اسم المنتج *" value={newProduct.name} onChange={v => setNewProduct(p => ({ ...p, name: v }))} placeholder="مثال: طقم الأكاديمية" />
         <Field label="السعر (ر.س) *" value={newProduct.price} onChange={v => setNewProduct(p => ({ ...p, price: v }))} type="number" />
         <Field label="التصنيف" value={newProduct.category} onChange={v => setNewProduct(p => ({ ...p, category: v }))} options={["ملابس", "إكسسوار", "حقائب", "معدات"]} />
@@ -643,8 +661,8 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
 
         <Field label="الرمز التعبيري (يظهر لو ما فيه صورة)" value={newProduct.img} onChange={v => setNewProduct(p => ({ ...p, img: v }))} placeholder="👕" />
         <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
-          <button onClick={() => setProductModal(false)} style={{ flex: 1, padding: "12px", borderRadius: 11, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.textSecondary, fontWeight: 700, cursor: "pointer" }}>إلغاء</button>
-          <button onClick={addProduct} style={{ flex: 2, padding: "12px", borderRadius: 11, background: COLORS.accent, border: "none", color: "#000", fontWeight: 800, cursor: "pointer" }}>✅ إضافة</button>
+          <button onClick={() => { setProductModal(false); setEditProductId(null); }} style={{ flex: 1, padding: "12px", borderRadius: 11, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.textSecondary, fontWeight: 700, cursor: "pointer" }}>إلغاء</button>
+          <button onClick={saveProduct} style={{ flex: 2, padding: "12px", borderRadius: 11, background: COLORS.accent, border: "none", color: "#000", fontWeight: 800, cursor: "pointer" }}>{editProductId ? "✅ حفظ التعديلات" : "✅ إضافة"}</button>
         </div>
       </Modal>
     )}

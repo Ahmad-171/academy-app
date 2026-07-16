@@ -112,10 +112,22 @@ export default function App() {
     setLoading(false);
   }, []);
 
+  // شعار وألوان الموقع «عامة القراءة» — تُجلب قبل تسجيل الدخول لتظهر
+  // في شاشة التحميل وصفحة الدخول من أول زيارة على أي جهاز.
+  const loadPublicBranding = useCallback(async () => {
+    const { data } = await supabase.from('settings').select('key,value').in('key', ['logo_url', 'theme_colors']);
+    if (!data) return;
+    const logo = data.find(s => s.key === 'logo_url');
+    if (logo) { setLogoUrl(logo.value || ""); try { localStorage.setItem("nz_logo", logo.value || ""); } catch {} }
+    const theme = data.find(s => s.key === 'theme_colors');
+    if (theme) { try { applyTheme(JSON.parse(theme.value)); setThemeTick(t => t + 1); localStorage.setItem("nz_theme", theme.value); } catch { /* افتراضي */ } }
+  }, []);
+
   // استعادة الجلسة عند فتح الموقع: إن كان هناك تسجيل دخول سابق نحمّل بياناته،
-  // وإلا نعرض صفحة الدخول. لا نجلب أي بيانات قبل المصادقة.
+  // وإلا نعرض صفحة الدخول. الشعار العام يُجلب دائمًا (حتى قبل الدخول).
   useEffect(() => {
     let alive = true;
+    loadPublicBranding();
     (async () => {
       const user = await currentUserFromSession();
       if (!alive) return;
@@ -127,7 +139,7 @@ export default function App() {
       if (!session) { setCurrentUser(null); setUsers([]); }
     });
     return () => { alive = false; sub?.subscription?.unsubscribe(); };
-  }, [loadData]);
+  }, [loadData, loadPublicBranding]);
 
   // ── حفظ رسالة المدير ──
   const saveDirectorMsg = async (msg) => {

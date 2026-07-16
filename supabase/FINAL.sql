@@ -90,6 +90,10 @@ create policy products_select on public.products for select to authenticated usi
 create policy products_write on public.products for all to authenticated using (is_admin() or has_perm('editCommerce')) with check (is_admin() or has_perm('editCommerce'));
 alter table public.settings enable row level security;
 create policy settings_select on public.settings for select to authenticated using (true);
+-- قراءة عامة (بدون تسجيل دخول) لمفاتيح الهوية البصرية فقط: الشعار والألوان والخلفية —
+-- حتى يظهر شعار الأكاديمية من أول زيارة على أي جهاز قبل تسجيل الدخول.
+create policy settings_public_read on public.settings for select to anon
+  using (key in ('logo_url', 'theme_colors', 'hero_background'));
 create policy settings_write on public.settings for all to authenticated using (is_admin() or has_perm('editCommerce') or has_perm('editSchedule')) with check (is_admin() or has_perm('editCommerce') or has_perm('editSchedule'));
 alter table public.finance enable row level security;
 create policy finance_all on public.finance for all to authenticated using (is_admin() or has_perm('editCommerce')) with check (is_admin() or has_perm('editCommerce'));

@@ -28,6 +28,10 @@ export function LibraryPage({ user, library, setLibrary }) {
     let mediaUrl = null;
     let type = newItem.type;
     if (file) {
+      if (file.size > 50 * 1024 * 1024) {
+        show("⚠️ حجم الملف أكبر من 50 ميجابايت — قلّص الفيديو أو ارفع مقطعًا أقصر", COLORS.danger);
+        setUploading(false); return;
+      }
       const { url, error } = await uploadMedia(file, "library");
       if (error) { show(`⚠️ فشل رفع الملف: ${error}`, COLORS.danger); setUploading(false); return; }
       mediaUrl = url;

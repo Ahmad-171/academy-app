@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { supabase } from "../lib/supabase";
 import { createAccount, resetMemberPassword } from "../lib/auth";
+import { uploadMedia } from "../lib/media";
 import { COLORS, DEFAULT_COLORS } from "../constants/colors";
 import { PERMISSION_LABELS, isManager } from "../constants/data";
 import { useWindowSize } from "../hooks/useWindowSize";
@@ -11,7 +12,7 @@ import { AttendanceManager } from "./AttendanceManager";
 import { EvaluationManager } from "./EvaluationManager";
 import { NotesManager } from "./NotesManager";
 
-const EMPTY_PRODUCT = { name: "", price: "", category: "ملابس", img: "👕" };
+const EMPTY_PRODUCT = { name: "", price: "", category: "ملابس", img: "👕", imageUrl: "" };
 const EMPTY_CODE = { code: "", percent: "", maxUses: "" };
 
 const THEME_FIELDS = [
@@ -112,11 +113,23 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
     show(`✅ تم تحديث سعر ${p.name}`);
   };
 
+  const [prodImgUploading, setProdImgUploading] = useState(false);
+  const uploadProductImage = async (file) => {
+    if (!file) return;
+    if (file.size > 50 * 1024 * 1024) { show("⚠️ حجم الصورة أكبر من 50 ميجابايت", COLORS.warning); return; }
+    setProdImgUploading(true);
+    const { url, error } = await uploadMedia(file, "products");
+    setProdImgUploading(false);
+    if (error) { show(`⚠️ فشل رفع الصورة: ${error}`, COLORS.danger); return; }
+    setNewProduct(p => ({ ...p, imageUrl: url }));
+  };
+
   const addProduct = async () => {
     if (!newProduct.name.trim() || !newProduct.price) { show("⚠️ أدخل اسم المنتج والسعر", COLORS.warning); return; }
     const { data, error } = await supabase.from('products').insert({
       name: newProduct.name, price: Number(newProduct.price),
-      category: newProduct.category, img: newProduct.img || "🛍️", images: [],
+      category: newProduct.category, img: newProduct.img || "🛍️",
+      images: newProduct.imageUrl ? [newProduct.imageUrl] : [],
     }).select().single();
     if (error) { show(`⚠️ ${error.message}`, COLORS.danger); return; }
     setProducts(prev => [...prev, { ...data, images: data.images || [] }]);
@@ -612,7 +625,23 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
         <Field label="اسم المنتج *" value={newProduct.name} onChange={v => setNewProduct(p => ({ ...p, name: v }))} placeholder="مثال: طقم الأكاديمية" />
         <Field label="السعر (ر.س) *" value={newProduct.price} onChange={v => setNewProduct(p => ({ ...p, price: v }))} type="number" />
         <Field label="التصنيف" value={newProduct.category} onChange={v => setNewProduct(p => ({ ...p, category: v }))} options={["ملابس", "إكسسوار", "حقائب", "معدات"]} />
-        <Field label="الرمز التعبيري" value={newProduct.img} onChange={v => setNewProduct(p => ({ ...p, img: v }))} placeholder="👕" />
+
+        {/* صورة المنتج */}
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ fontSize: 12, color: COLORS.textSecondary, marginBottom: 6, fontWeight: 600 }}>صورة المنتج (اختياري)</div>
+          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+            <div style={{ width: 60, height: 60, borderRadius: 12, background: COLORS.surface, border: `1px solid ${COLORS.border}`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, overflow: "hidden", flexShrink: 0 }}>
+              {newProduct.imageUrl ? <img src={newProduct.imageUrl} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : newProduct.img}
+            </div>
+            <label style={{ padding: "9px 14px", background: COLORS.accentBlue + "22", border: `1px solid ${COLORS.accentBlue}44`, color: COLORS.accentBlue, borderRadius: 10, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>
+              {prodImgUploading ? "جاري الرفع..." : (newProduct.imageUrl ? "تغيير الصورة" : "📷 رفع صورة")}
+              <input type="file" accept="image/*" onChange={e => uploadProductImage(e.target.files?.[0])} style={{ display: "none" }} />
+            </label>
+            {newProduct.imageUrl && <button onClick={() => setNewProduct(p => ({ ...p, imageUrl: "" }))} style={{ background: "none", border: "none", color: COLORS.danger, cursor: "pointer", fontSize: 12 }}>إزالة</button>}
+          </div>
+        </div>
+
+        <Field label="الرمز التعبيري (يظهر لو ما فيه صورة)" value={newProduct.img} onChange={v => setNewProduct(p => ({ ...p, img: v }))} placeholder="👕" />
         <div style={{ display: "flex", gap: 10, marginTop: 8 }}>
           <button onClick={() => setProductModal(false)} style={{ flex: 1, padding: "12px", borderRadius: 11, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.textSecondary, fontWeight: 700, cursor: "pointer" }}>إلغاء</button>
           <button onClick={addProduct} style={{ flex: 2, padding: "12px", borderRadius: 11, background: COLORS.accent, border: "none", color: "#000", fontWeight: 800, cursor: "pointer" }}>✅ إضافة</button>

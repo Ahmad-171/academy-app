@@ -82,7 +82,13 @@ export function StorePage({ products = [], setProducts, user }) {
       <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "repeat(4,1fr)" : "repeat(2,1fr)", gap: 12 }}>
         {filtered.map((p, i) => (
           <div key={i} style={{ background: COLORS.cardBg, border: `1px solid ${COLORS.border}`, borderRadius: 15, padding: 14, textAlign: "center" }}>
-            <div style={{ fontSize: isDesktop ? 52 : 44, marginBottom: 8, background: COLORS.surface, borderRadius: 12, padding: "12px" }}>{p.img}</div>
+            {p.images?.[0] ? (
+              <div style={{ height: isDesktop ? 130 : 110, marginBottom: 8, background: COLORS.surface, borderRadius: 12, overflow: "hidden" }}>
+                <img src={p.images[0]} alt={p.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              </div>
+            ) : (
+              <div style={{ fontSize: isDesktop ? 52 : 44, marginBottom: 8, background: COLORS.surface, borderRadius: 12, padding: "12px" }}>{p.img}</div>
+            )}
             <div style={{ fontSize: 12, fontWeight: 700, color: COLORS.textPrimary, marginBottom: 3 }}>{p.name}</div>
             <div style={{ fontSize: 10, color: COLORS.textSecondary, marginBottom: 8 }}>{p.category}</div>
             <div style={{ fontSize: 16, fontWeight: 900, color: COLORS.accentGold, marginBottom: 10 }}>{p.price} <span style={{ fontSize: 10, fontWeight: 400 }}>ر.س</span></div>

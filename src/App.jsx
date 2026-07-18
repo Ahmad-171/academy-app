@@ -3,7 +3,7 @@ import { supabase } from "./lib/supabase";
 import { currentUserFromSession, signOut as authSignOut, onAuthChange, changeMyPassword } from "./lib/auth";
 import { COLORS, applyTheme, resetTheme, DEFAULT_COLORS } from "./constants/colors";
 import { BRAND, applyBrand } from "./constants/brand";
-import { ROLE_TABS, ALL_TABS, SUBSCRIPTION_PLANS, isManager } from "./constants/data";
+import { ROLE_TABS, ALL_TABS, SUBSCRIPTION_PLANS, memberships as DEFAULT_MEMBERSHIPS, DEFAULT_STORE_CATEGORIES, DEFAULT_SUB_CATEGORIES, DEFAULT_BRANCH_INFO, DEFAULT_PAYMENT_INFO, isManager } from "./constants/data";
 import { useWindowSize } from "./hooks/useWindowSize";
 import { Avatar, Modal } from "./components/ui";
 import { Logo } from "./components/Logo";
@@ -35,6 +35,11 @@ export default function App() {
   const [aboutTerms, setAboutTerms]       = useState(null);
   const [aboutPrivacy, setAboutPrivacy]   = useState(null);
   const [subscriptionPlans, setSubscriptionPlans] = useState(SUBSCRIPTION_PLANS);
+  const [membershipsList, setMembershipsList]     = useState(DEFAULT_MEMBERSHIPS);
+  const [storeCategories, setStoreCategories]     = useState(DEFAULT_STORE_CATEGORIES);
+  const [subCategories, setSubCategories]         = useState(DEFAULT_SUB_CATEGORIES);
+  const [branchInfo, setBranchInfo]               = useState(DEFAULT_BRANCH_INFO);
+  const [paymentInfo, setPaymentInfo]             = useState(DEFAULT_PAYMENT_INFO);
   const [heroBg, setHeroBg]               = useState("");
   // الشعار محفوظ محليًا ليظهر فورًا قبل تسجيل الدخول (شاشة التحميل والدخول)
   const [logoUrl, setLogoUrl]             = useState(() => { try { return localStorage.getItem("nz_logo") || ""; } catch { return ""; } });
@@ -109,6 +114,16 @@ export default function App() {
         if (at) { try { setAboutTerms(JSON.parse(at.value)); } catch { /* افتراضي */ } }
         const ap = settingsData.find(s => s.key === 'about_privacy');
         if (ap) { try { setAboutPrivacy(JSON.parse(ap.value)); } catch { /* افتراضي */ } }
+        const ml = settingsData.find(s => s.key === 'memberships_list');
+        if (ml) { try { const v = JSON.parse(ml.value); if (Array.isArray(v) && v.length) setMembershipsList(v); } catch { /* افتراضي */ } }
+        const sc = settingsData.find(s => s.key === 'store_categories');
+        if (sc) { try { const v = JSON.parse(sc.value); if (Array.isArray(v) && v.length) setStoreCategories(v); } catch { /* افتراضي */ } }
+        const subc = settingsData.find(s => s.key === 'sub_categories');
+        if (subc) { try { const v = JSON.parse(subc.value); if (Array.isArray(v) && v.length) setSubCategories(v); } catch { /* افتراضي */ } }
+        const bi = settingsData.find(s => s.key === 'branch_info');
+        if (bi) { try { setBranchInfo({ ...DEFAULT_BRANCH_INFO, ...JSON.parse(bi.value) }); } catch { /* افتراضي */ } }
+        const pi = settingsData.find(s => s.key === 'payment_info');
+        if (pi) { try { setPaymentInfo({ ...DEFAULT_PAYMENT_INFO, ...JSON.parse(pi.value) }); } catch { /* افتراضي */ } }
       }
     } catch (err) {
       console.error('Error loading data:', err);
@@ -157,6 +172,28 @@ export default function App() {
   const saveSubscriptionPlans = async (plans) => {
     setSubscriptionPlans(plans);
     await supabase.from('settings').upsert({ key: 'subscription_plans', value: JSON.stringify(plans) });
+  };
+
+  // ── حفظ العضويات والتصنيفات ومعلومات الفرع والسداد ──
+  const saveMembershipsList = async (list) => {
+    setMembershipsList(list);
+    await supabase.from('settings').upsert({ key: 'memberships_list', value: JSON.stringify(list) });
+  };
+  const saveStoreCategories = async (cats) => {
+    setStoreCategories(cats);
+    await supabase.from('settings').upsert({ key: 'store_categories', value: JSON.stringify(cats) });
+  };
+  const saveSubCategories = async (cats) => {
+    setSubCategories(cats);
+    await supabase.from('settings').upsert({ key: 'sub_categories', value: JSON.stringify(cats) });
+  };
+  const saveBranchInfo = async (info) => {
+    setBranchInfo(info);
+    await supabase.from('settings').upsert({ key: 'branch_info', value: JSON.stringify(info) });
+  };
+  const savePaymentInfo = async (info) => {
+    setPaymentInfo(info);
+    await supabase.from('settings').upsert({ key: 'payment_info', value: JSON.stringify(info) });
   };
 
   // ── حفظ هوية الموقع: الاسم والشعار النصي وبطاقات شاشة الدخول (من حساب المبرمج) ──
@@ -225,18 +262,18 @@ export default function App() {
 
   const renderPage = () => {
     switch (active) {
-      case "home":          return <HomePage onNav={setActive} user={liveUser} users={users} notifications={notifications} directorMsg={directorMsg} setDirectorMsg={saveDirectorMsg} heroBg={heroBg} setHeroBg={saveHeroBg} logoUrl={logoUrl} setLogo={saveLogo} saveBrand={saveBrand} />;
+      case "home":          return <HomePage onNav={setActive} user={liveUser} users={users} notifications={notifications} directorMsg={directorMsg} setDirectorMsg={saveDirectorMsg} heroBg={heroBg} setHeroBg={saveHeroBg} logoUrl={logoUrl} setLogo={saveLogo} saveBrand={saveBrand} plans={subscriptionPlans} memberships={membershipsList} branchInfo={branchInfo} saveBranchInfo={saveBranchInfo} />;
       case "players":       return <PlayersRegistryPage user={liveUser} users={users} setUsers={setUsers} loadData={loadData} />;
-      case "store":         return <StorePage products={products} setProducts={setProducts} user={liveUser} />;
+      case "store":         return <StorePage products={products} setProducts={setProducts} user={liveUser} categories={storeCategories} />;
       case "notifications": return <NotificationsPage user={liveUser} notifications={notifications} setNotifications={setNotifications} />;
-      case "subscriptions": return <SubscriptionsPage user={liveUser} setUsers={setUsers} plans={subscriptionPlans} />;
-      case "memberships":   return <MembershipsPage user={liveUser} />;
+      case "subscriptions": return <SubscriptionsPage user={liveUser} setUsers={setUsers} plans={subscriptionPlans} categories={subCategories} paymentInfo={paymentInfo} />;
+      case "memberships":   return <MembershipsPage user={liveUser} setUsers={setUsers} memberships={membershipsList} paymentInfo={paymentInfo} />;
       case "about":         return <AboutPage user={liveUser} setUsers={setUsers} terms={aboutTerms} privacy={aboutPrivacy} saveTerms={saveAboutTerms} savePrivacy={saveAboutPrivacy} />;
       case "mychild":       return <MyChildPage user={liveUser} users={users} />;
       case "myrecord":      return <MyRecordPage user={liveUser} />;
       case "library":       return <LibraryPage user={liveUser} library={library} setLibrary={setLibrary} />;
-      case "admin":         return hasAdminAccess ? <AdminPage user={liveUser} users={users} setUsers={setUsers} products={products} setProducts={setProducts} loadData={loadData} subscriptionPlans={subscriptionPlans} saveSubscriptionPlans={saveSubscriptionPlans} saveTheme={saveTheme} resetThemeAll={resetThemeAll} /> : <HomePage onNav={setActive} user={liveUser} users={users} notifications={notifications} directorMsg={directorMsg} setDirectorMsg={saveDirectorMsg} heroBg={heroBg} setHeroBg={saveHeroBg} logoUrl={logoUrl} setLogo={saveLogo} />;
-      default:              return <HomePage onNav={setActive} user={liveUser} users={users} notifications={notifications} directorMsg={directorMsg} setDirectorMsg={saveDirectorMsg} heroBg={heroBg} setHeroBg={saveHeroBg} logoUrl={logoUrl} setLogo={saveLogo} saveBrand={saveBrand} />;
+      case "admin":         return hasAdminAccess ? <AdminPage user={liveUser} users={users} setUsers={setUsers} products={products} setProducts={setProducts} loadData={loadData} subscriptionPlans={subscriptionPlans} saveSubscriptionPlans={saveSubscriptionPlans} saveTheme={saveTheme} resetThemeAll={resetThemeAll} membershipsList={membershipsList} saveMembershipsList={saveMembershipsList} storeCategories={storeCategories} saveStoreCategories={saveStoreCategories} subCategories={subCategories} saveSubCategories={saveSubCategories} branchInfo={branchInfo} saveBranchInfo={saveBranchInfo} paymentInfo={paymentInfo} savePaymentInfo={savePaymentInfo} /> : <HomePage onNav={setActive} user={liveUser} users={users} notifications={notifications} directorMsg={directorMsg} setDirectorMsg={saveDirectorMsg} heroBg={heroBg} setHeroBg={saveHeroBg} logoUrl={logoUrl} setLogo={saveLogo} plans={subscriptionPlans} memberships={membershipsList} branchInfo={branchInfo} saveBranchInfo={saveBranchInfo} />;
+      default:              return <HomePage onNav={setActive} user={liveUser} users={users} notifications={notifications} directorMsg={directorMsg} setDirectorMsg={saveDirectorMsg} heroBg={heroBg} setHeroBg={saveHeroBg} logoUrl={logoUrl} setLogo={saveLogo} saveBrand={saveBrand} plans={subscriptionPlans} memberships={membershipsList} branchInfo={branchInfo} saveBranchInfo={saveBranchInfo} />;
     }
   };
   if (loading) return (

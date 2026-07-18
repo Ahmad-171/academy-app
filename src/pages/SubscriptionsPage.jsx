@@ -2,10 +2,11 @@ import { useState } from "react";
 import { supabase } from "../lib/supabase";
 import { validateDiscountCode, consumeDiscountCode } from "../lib/discounts";
 import { COLORS } from "../constants/colors";
-import { SUBSCRIPTION_PLANS } from "../constants/data";
+import { SUBSCRIPTION_PLANS, DEFAULT_PAYMENT_INFO } from "../constants/data";
 import { useWindowSize } from "../hooks/useWindowSize";
 import { useToast } from "../hooks/useToast";
 import { ToastMsg } from "../components/ui";
+import { PaymentBox } from "../components/PaymentBox";
 
 function addMonths(dateStr, months) {
   const d = dateStr ? new Date(dateStr) : new Date();
@@ -13,16 +14,20 @@ function addMonths(dateStr, months) {
   return d.toISOString().slice(0, 10);
 }
 
-export function SubscriptionsPage({ user, setUsers, plans = SUBSCRIPTION_PLANS }) {
+export function SubscriptionsPage({ user, setUsers, plans = SUBSCRIPTION_PLANS, categories = [], paymentInfo = DEFAULT_PAYMENT_INFO }) {
   const [selected, setSelected] = useState(null);
   const [code, setCode] = useState("");
   const [discount, setDiscount] = useState(null);
   const [checking, setChecking] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [done, setDone] = useState(false);
+  const [payMethod, setPayMethod] = useState("cash");
+  const [cat, setCat] = useState("الكل");
   const { isDesktop } = useWindowSize();
   const { toast, show } = useToast();
 
+  const cats = ["الكل", ...categories.filter(Boolean)];
+  const shownPlans = cat === "الكل" ? plans : plans.filter(p => (p.category || "عام") === cat);
   const plan = selected !== null ? plans[selected] : null;
   const finalPrice = plan ? Math.round(plan.price * (1 - (discount || 0) / 100)) : 0;
 
@@ -78,15 +83,27 @@ export function SubscriptionsPage({ user, setUsers, plans = SUBSCRIPTION_PLANS }
     <div style={{ padding: isDesktop ? "32px" : "16px" }}>
       {toast && <ToastMsg msg={toast.msg} color={toast.color} />}
       <div style={{ fontSize: isDesktop ? 22 : 18, fontWeight: 800, color: COLORS.textPrimary, marginBottom: 4 }}>💳 الاشتراكات</div>
-      <div style={{ fontSize: 13, color: COLORS.textSecondary, marginBottom: 20 }}>اختر مدة الاشتراك المناسبة</div>
+      <div style={{ fontSize: 13, color: COLORS.textSecondary, marginBottom: 16 }}>اختر مدة الاشتراك المناسبة</div>
+
+      {cats.length > 2 && (
+        <div style={{ display: "flex", gap: 8, overflowX: "auto", marginBottom: 16, paddingBottom: 4 }}>
+          {cats.map(c => (
+            <button key={c} onClick={() => setCat(c)} style={{ padding: "7px 16px", borderRadius: 20, background: cat === c ? COLORS.accent : COLORS.cardBg, border: `1px solid ${cat === c ? COLORS.accent : COLORS.border}`, color: cat === c ? "#000" : COLORS.textSecondary, fontWeight: 700, fontSize: 12, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0 }}>{c}</button>
+          ))}
+        </div>
+      )}
 
       <div style={{ display: isDesktop ? "grid" : "flex", gridTemplateColumns: "repeat(3,1fr)", flexDirection: "column", gap: 12, marginBottom: 20, maxWidth: 760 }}>
-        {plans.map((p, i) => (
-          <div key={p.id} onClick={() => setSelected(i)} style={{ background: COLORS.cardBg, border: `2px solid ${selected === i ? COLORS.accent : COLORS.border}`, borderRadius: 16, padding: "20px", cursor: "pointer", textAlign: "center", boxShadow: selected === i ? `0 0 20px ${COLORS.accent}33` : "none" }}>
-            <div style={{ fontSize: 14, fontWeight: 800, color: COLORS.textPrimary, marginBottom: 8 }}>{p.label}</div>
-            <div style={{ fontSize: 26, fontWeight: 900, color: COLORS.accent }}>{p.price} <span style={{ fontSize: 12, color: COLORS.textSecondary, fontWeight: 400 }}>ر.س</span></div>
-          </div>
-        ))}
+        {shownPlans.map((p) => {
+          const i = plans.indexOf(p);
+          return (
+            <div key={p.id} onClick={() => setSelected(i)} style={{ background: COLORS.cardBg, border: `2px solid ${selected === i ? COLORS.accent : COLORS.border}`, borderRadius: 16, padding: "20px", cursor: "pointer", textAlign: "center", boxShadow: selected === i ? `0 0 20px ${COLORS.accent}33` : "none" }}>
+              <div style={{ fontSize: 14, fontWeight: 800, color: COLORS.textPrimary, marginBottom: 8 }}>{p.label}</div>
+              <div style={{ fontSize: 26, fontWeight: 900, color: COLORS.accent }}>{p.price} <span style={{ fontSize: 12, color: COLORS.textSecondary, fontWeight: 400 }}>ر.س</span></div>
+              {p.desc && <div style={{ fontSize: 12, color: COLORS.textSecondary, marginTop: 8 }}>{p.desc}</div>}
+            </div>
+          );
+        })}
       </div>
 
       {plan && (
@@ -108,10 +125,9 @@ export function SubscriptionsPage({ user, setUsers, plans = SUBSCRIPTION_PLANS }
               <span style={{ color: COLORS.accent }}>-{plan.price - finalPrice} ر.س</span>
             </div>
           )}
-          <div style={{ borderTop: `1px solid ${COLORS.border}`, paddingTop: 12, display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 18 }}>
-            <span style={{ color: COLORS.textPrimary, fontWeight: 800, fontSize: 15 }}>الإجمالي</span>
-            <span style={{ color: COLORS.accentGold, fontWeight: 900, fontSize: 22 }}>{finalPrice} ر.س</span>
-          </div>
+          <div style={{ borderTop: `1px solid ${COLORS.border}`, paddingTop: 12, marginBottom: 16 }} />
+
+          <PaymentBox amount={finalPrice} paymentInfo={paymentInfo} method={payMethod} onMethod={setPayMethod} />
 
           <button onClick={subscribe} disabled={submitting}
             style={{ width: "100%", padding: "13px", borderRadius: 13, background: `linear-gradient(135deg,${COLORS.accent},#00a07a)`, border: "none", color: "#000", fontWeight: 900, fontSize: 15, cursor: "pointer" }}>

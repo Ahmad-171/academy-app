@@ -3,7 +3,7 @@ import { supabase } from "../lib/supabase";
 import { COLORS } from "../constants/colors";
 import { useWindowSize } from "../hooks/useWindowSize";
 import { Avatar, Badge, MiniBar } from "../components/ui";
-import { PlayerScan } from "./PlayerScan";
+import { PlayerCode } from "./PlayerCode";
 
 const CRITERIA = [
   { label: "السرعة",         key: "speed",    color: COLORS.accent },
@@ -23,7 +23,6 @@ export function PlayerRecord({ player, title, canScan = false }) {
   const [attendance, setAttendance] = useState([]);
   const [loading, setLoading] = useState(true);
   const [scanning, setScanning] = useState(false);
-  const [reloadKey, setReloadKey] = useState(0);
   const { isDesktop } = useWindowSize();
 
   useEffect(() => {
@@ -40,7 +39,7 @@ export function PlayerRecord({ player, title, canScan = false }) {
       setAttendance(attRes.data || []);
       setLoading(false);
     })();
-  }, [player, reloadKey]);
+  }, [player]);
 
   if (!player) return null;
 
@@ -61,25 +60,21 @@ export function PlayerRecord({ player, title, canScan = false }) {
         </div>
       </div>
 
-      {/* مسح باركود الحضور — يظهر للاعب نفسه فقط */}
+      {/* رمز حضور اللاعب — يظهر للاعب نفسه فقط */}
       {canScan && (
         <div style={{ background: COLORS.cardBg, border: `1px solid ${COLORS.accent}44`, borderRadius: 16, padding: 20, marginBottom: 20, display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
           <div style={{ flex: 1, minWidth: 180 }}>
-            <div style={{ fontSize: 15, fontWeight: 800, color: COLORS.textPrimary, marginBottom: 6 }}>📲 تسجيل الحضور</div>
+            <div style={{ fontSize: 15, fontWeight: 800, color: COLORS.textPrimary, marginBottom: 6 }}>🎫 رمز الحضور</div>
             <div style={{ fontSize: 13, color: COLORS.textSecondary, lineHeight: 1.7 }}>
-              امسح باركود «حضور» المعروض لدى المدرب عند وصولك، و«انصراف» عند مغادرتك.
+              اعرض رمزك للمدرب/الإداري عند وصولك ليسجّل حضورك، وعند مغادرتك ليسجّل انصرافك.
             </div>
           </div>
-          <button onClick={() => setScanning(true)} style={{ padding: "12px 22px", background: COLORS.accent, border: "none", color: "#000", borderRadius: 12, fontWeight: 800, fontSize: 14, cursor: "pointer" }}>📷 مسح الباركود</button>
+          <button onClick={() => setScanning(true)} style={{ padding: "12px 22px", background: COLORS.accent, border: "none", color: "#000", borderRadius: 12, fontWeight: 800, fontSize: 14, cursor: "pointer" }}>🎫 عرض رمز حضوري</button>
         </div>
       )}
 
       {scanning && (
-        <PlayerScan
-          player={player}
-          onClose={() => setScanning(false)}
-          onRecorded={() => setReloadKey(k => k + 1)}
-        />
+        <PlayerCode player={player} onClose={() => setScanning(false)} />
       )}
 
       {loading ? (

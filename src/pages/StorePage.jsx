@@ -7,7 +7,7 @@ import { useWindowSize } from "../hooks/useWindowSize";
 import { useToast } from "../hooks/useToast";
 import { Modal, Field, ToastMsg } from "../components/ui";
 
-export function StorePage({ products = [], setProducts, user }) {
+export function StorePage({ products = [], setProducts, user, categories = ["ملابس", "إكسسوار", "حقائب", "معدات"] }) {
   const [cart, setCart] = useState([]);
   const [category, setCategory] = useState("الكل");
   const [showCart, setShowCart] = useState(false);
@@ -74,7 +74,7 @@ export function StorePage({ products = [], setProducts, user }) {
       </div>
 
       <div style={{ display: "flex", gap: 8, overflowX: "auto", marginBottom: 18, paddingBottom: 4 }}>
-        {["الكل", "ملابس", "إكسسوار", "حقائب", "معدات"].map(c => (
+        {["الكل", ...categories].map(c => (
           <button key={c} onClick={() => setCategory(c)} style={{ padding: "7px 16px", borderRadius: 20, background: category === c ? COLORS.accent : COLORS.cardBg, border: `1px solid ${category === c ? COLORS.accent : COLORS.border}`, color: category === c ? "#000" : COLORS.textSecondary, fontWeight: 700, fontSize: 12, cursor: "pointer", whiteSpace: "nowrap", flexShrink: 0 }}>{c}</button>
         ))}
       </div>

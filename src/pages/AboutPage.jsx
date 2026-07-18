@@ -2,6 +2,7 @@ import { useState } from "react";
 import { supabase } from "../lib/supabase";
 import { COLORS } from "../constants/colors";
 import { BRAND } from "../constants/brand";
+import { isManager } from "../constants/data";
 import { useWindowSize } from "../hooks/useWindowSize";
 import { useToast } from "../hooks/useToast";
 import { ToastMsg } from "../components/ui";
@@ -65,7 +66,7 @@ export function AboutPage({ user, setUsers, terms, privacy, saveTerms, savePriva
 
   const TERMS = terms && terms.length ? terms : DEFAULT_TERMS;
   const PRIVACY = privacy && privacy.length ? privacy : DEFAULT_PRIVACY;
-  const canEditAbout = user.role === "مبرمج";
+  const canEditAbout = isManager(user);
   const signed = !!user.contract_signed;
 
   const sign = async () => {

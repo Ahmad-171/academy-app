@@ -6,6 +6,10 @@ export const ATT_PREFIX = "NZ-ATT:";
 // باركود اليوم: يشفّر الإجراء (حضور/انصراف) + التاريخ + توكن اليوم
 export const dailyAttValue = (action, date, token) => `${ATT_PREFIX}${action}:${date}:${token}`;
 
+// رمز اللاعب: يعرضه اللاعب على جواله والمدرب يمسحه لتسجيل حضوره/انصرافه.
+export const PLAYER_PREFIX = "NZ-PLAYER:";
+export const playerCodeValue = (id) => `${PLAYER_PREFIX}${id}`;
+
 export function QRCodeImage({ value, size = 200 }) {
   const [dataUrl, setDataUrl] = useState("");
 

@@ -10,7 +10,7 @@ import { Logo } from "../components/Logo";
 const NOTIF_ICONS  = { match: "⚽", absence: "❌", payment: "💳", award: "⭐", training: "🏃", general: "📢" };
 const NOTIF_COLORS = (C) => ({ match: C.warning, absence: C.danger, payment: C.accentBlue, award: C.accentGold, training: C.accent, general: C.purple });
 
-export function HomePage({ onNav, user, users, notifications = [], directorMsg, setDirectorMsg, heroBg, setHeroBg, logoUrl, setLogo, saveBrand }) {
+export function HomePage({ onNav, user, users, notifications = [], directorMsg, setDirectorMsg, heroBg, setHeroBg, logoUrl, setLogo, saveBrand, plans = [], memberships = [], branchInfo, saveBranchInfo }) {
   const [visible, setVisible] = useState(false);
   const [editMsg, setEditMsg] = useState(false);
   const [tempMsg, setTempMsg] = useState(directorMsg);
@@ -18,14 +18,28 @@ export function HomePage({ onNav, user, users, notifications = [], directorMsg, 
   const [logoUploading, setLogoUploading] = useState(false);
   const [brandModal, setBrandModal] = useState(false);
   const [brandDraft, setBrandDraft] = useState(null);
+  const [branchModal, setBranchModal] = useState(false);
+  const [branchDraft, setBranchDraft] = useState(branchInfo || {});
   const { isDesktop } = useWindowSize();
   useEffect(() => { setTimeout(() => setVisible(true), 100); }, []);
 
   const players = users.filter(u => u.role === "لاعب" && !u.hidden);
   const coaches = users.filter(u => u.role === "مدرب" && !u.hidden);
   const canEditMsg = isManager(user);
+  const isBoss = isManager(user);
   // تغيير الشعار والخلفية لحساب المبرمج فقط (ليس المدير)
   const canEditBranding = user.role === "مبرمج";
+
+  // اشتراك المستخدم وعضويته لعرضهما في الصفحة الرئيسية (للاعب/ولي الأمر)
+  const isSubscriber = user.role === "لاعب" || user.role === "ولي أمر";
+  const subActive = user.subscription_end && new Date(user.subscription_end) >= new Date(new Date().toISOString().slice(0, 10));
+  const subMonths = (user.subscription_start && user.subscription_end)
+    ? Math.max(1, Math.round((new Date(user.subscription_end) - new Date(user.subscription_start)) / (1000 * 60 * 60 * 24 * 30.4)))
+    : 0;
+  const myPlan = plans.find(p => p.months === subMonths);
+  const myMembership = memberships.find(m => m.name === user.membership);
+  // ألوان القسم السفلي الأبيض
+  const LT = { bg: "#ffffff", card: "#f5f7fa", border: "#e2e8f0", text: "#0f1b2d", sub: "#5a6472" };
 
   // أخبار الصفحة الرئيسية: الفعاليات/الرسائل المعلّمة للظهور هنا والمستهدِفة لدور المستخدم
   const notifColors = NOTIF_COLORS(COLORS);
@@ -71,6 +85,9 @@ export function HomePage({ onNav, user, users, notifications = [], directorMsg, 
     });
     setBrandModal(false);
   };
+
+  const openBranchEditor = () => { setBranchDraft(branchInfo || {}); setBranchModal(true); };
+  const submitBranch = async () => { await saveBranchInfo?.(branchDraft); setBranchModal(false); };
 
   return (
     <div style={{ padding: isDesktop ? "32px" : "0 0 40px" }}>
@@ -144,20 +161,76 @@ export function HomePage({ onNav, user, users, notifications = [], directorMsg, 
         </div>
       </div>
 
-      {/* إحصائيات حقيقية */}
-      <div style={{ padding: isDesktop ? "0" : "16px 16px 0" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 12, marginBottom: 22 }}>
-          <StatCard label="لاعب مسجل" value={String(players.length)} icon="⚽" color={COLORS.accent} sub={`${players.filter(p => p.status !== "موقوف").length} نشط`} />
-          <StatCard label="مدرب" value={String(coaches.length)} icon="🏅" color={COLORS.accentGold} sub="في الأكاديمية" />
+      {/* القسم السفلي — خلفية بيضاء */}
+      <div style={{ background: LT.bg, borderRadius: isDesktop ? 20 : 0, padding: isDesktop ? "24px" : "20px 16px 24px", marginTop: isDesktop ? 20 : 0 }}>
+
+        {/* معلومات الأكاديمية الأساسية (المكان/الأيام/الوقت) */}
+        <div style={{ background: LT.card, border: `1px solid ${LT.border}`, borderRadius: 16, padding: "16px 18px", marginBottom: 18, position: "relative" }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+            <div style={{ fontSize: 15, fontWeight: 800, color: LT.text }}>📍 معلومات الأكاديمية</div>
+            {isBoss && <button onClick={openBranchEditor} style={{ background: "#0f1b2d", border: "none", color: "#fff", borderRadius: 8, padding: "5px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>✏️ تعديل</button>}
+          </div>
+          {[["🏫", "المكان", branchInfo?.place], ["🗓️", "الأيام", branchInfo?.days], ["⏰", "الوقت", branchInfo?.time]].map(([ic, lbl, val], i) => (
+            <div key={i} style={{ display: "flex", gap: 10, alignItems: "flex-start", marginBottom: i < 2 ? 9 : 0 }}>
+              <span style={{ fontSize: 16 }}>{ic}</span>
+              <div>
+                <div style={{ fontSize: 11, color: LT.sub, fontWeight: 600 }}>{lbl}</div>
+                <div style={{ fontSize: 13, color: LT.text, fontWeight: 700 }}>{val || "—"}</div>
+              </div>
+            </div>
+          ))}
         </div>
+
+        {/* اشتراكي وعضويتي — للاعب/ولي الأمر */}
+        {isSubscriber && (
+          <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "1fr 1fr" : "1fr", gap: 12, marginBottom: 18 }}>
+            <div style={{ background: LT.card, border: `1px solid ${subActive ? "#00c89655" : LT.border}`, borderRadius: 16, padding: "16px 18px" }}>
+              <div style={{ fontSize: 12, color: LT.sub, fontWeight: 700, marginBottom: 6 }}>💳 اشتراكي</div>
+              {subActive ? (
+                <>
+                  <div style={{ fontSize: 15, fontWeight: 900, color: "#00996f" }}>نشط ✅</div>
+                  {myPlan?.desc && <div style={{ fontSize: 12, color: LT.text, marginTop: 3 }}>{myPlan.label} — {myPlan.desc}</div>}
+                  <div style={{ fontSize: 12, color: LT.sub, marginTop: 4 }}>ساري حتى: {user.subscription_end}</div>
+                </>
+              ) : (
+                <>
+                  <div style={{ fontSize: 15, fontWeight: 900, color: LT.sub }}>غير مفعّل</div>
+                  <button onClick={() => onNav("subscriptions")} style={{ marginTop: 8, background: "#00c896", border: "none", color: "#000", borderRadius: 9, padding: "7px 14px", fontSize: 12, fontWeight: 800, cursor: "pointer" }}>اشترك الآن</button>
+                </>
+              )}
+            </div>
+            <div style={{ background: LT.card, border: `1px solid ${LT.border}`, borderRadius: 16, padding: "16px 18px" }}>
+              <div style={{ fontSize: 12, color: LT.sub, fontWeight: 700, marginBottom: 6 }}>💎 عضويتي</div>
+              {user.membership && user.membership !== "-" ? (
+                <>
+                  <div style={{ fontSize: 15, fontWeight: 900, color: LT.text }}>عضوية {user.membership}</div>
+                  {myMembership?.desc && <div style={{ fontSize: 12, color: LT.sub, marginTop: 3 }}>{myMembership.desc}</div>}
+                </>
+              ) : (
+                <>
+                  <div style={{ fontSize: 15, fontWeight: 900, color: LT.sub }}>لا توجد عضوية</div>
+                  <button onClick={() => onNav("memberships")} style={{ marginTop: 8, background: "#f5c842", border: "none", color: "#000", borderRadius: 9, padding: "7px 14px", fontSize: 12, fontWeight: 800, cursor: "pointer" }}>اختر عضوية</button>
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* إحصائيات — للمدير فقط */}
+        {isBoss && (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 12, marginBottom: 22 }}>
+            <StatCard label="لاعب مسجل" value={String(players.length)} icon="⚽" color={COLORS.accent} sub={`${players.filter(p => p.status !== "موقوف").length} نشط`} />
+            <StatCard label="مدرب" value={String(coaches.length)} icon="🏅" color={COLORS.accentGold} sub="في الأكاديمية" />
+          </div>
+        )}
 
         {/* خانة الأخبار — من الفعاليات والرسائل */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-          <div style={{ fontSize: 16, fontWeight: 800, color: COLORS.textPrimary }}>📢 آخر الأخبار</div>
-          <button onClick={() => onNav("notifications")} style={{ background: "none", border: "none", color: COLORS.accent, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>عرض الكل ←</button>
+          <div style={{ fontSize: 16, fontWeight: 800, color: LT.text }}>📢 آخر الأخبار</div>
+          <button onClick={() => onNav("notifications")} style={{ background: "none", border: "none", color: "#00996f", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>عرض الكل ←</button>
         </div>
         {homeNews.length === 0 ? (
-          <div style={{ background: COLORS.cardBg, border: `1px solid ${COLORS.border}`, borderRadius: 14, padding: "26px 20px", textAlign: "center", color: COLORS.textSecondary, fontSize: 13, marginBottom: 22 }}>
+          <div style={{ background: LT.card, border: `1px solid ${LT.border}`, borderRadius: 14, padding: "26px 20px", textAlign: "center", color: LT.sub, fontSize: 13, marginBottom: 22 }}>
             لا توجد أخبار منشورة حاليًا
           </div>
         ) : (
@@ -165,12 +238,12 @@ export function HomePage({ onNav, user, users, notifications = [], directorMsg, 
             {homeNews.map(n => {
               const c = notifColors[n.type] || COLORS.accent;
               return (
-                <div key={n.id} style={{ background: COLORS.cardBg, border: `1px solid ${c}33`, borderRight: `4px solid ${c}`, borderRadius: 14, padding: "14px 16px", display: "flex", gap: 12, alignItems: "flex-start" }}>
+                <div key={n.id} style={{ background: LT.card, border: `1px solid ${c}44`, borderRight: `4px solid ${c}`, borderRadius: 14, padding: "14px 16px", display: "flex", gap: 12, alignItems: "flex-start" }}>
                   <div style={{ width: 40, height: 40, borderRadius: 11, background: `${c}22`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 17, flexShrink: 0 }}>{NOTIF_ICONS[n.type] || "📢"}</div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: 13, color: COLORS.textPrimary, lineHeight: 1.6 }}>{n.msg}</div>
+                    <div style={{ fontSize: 13, color: LT.text, lineHeight: 1.6 }}>{n.msg}</div>
                     <div style={{ display: "flex", gap: 8, marginTop: 5, flexWrap: "wrap" }}>
-                      <span style={{ fontSize: 11, color: COLORS.textSecondary }}>{n.time}</span>
+                      <span style={{ fontSize: 11, color: LT.sub }}>{n.time}</span>
                       {n.sender && <span style={{ fontSize: 11, color: c }}>· {n.sender}</span>}
                     </div>
                   </div>
@@ -181,10 +254,27 @@ export function HomePage({ onNav, user, users, notifications = [], directorMsg, 
         )}
 
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-          <button onClick={() => onNav("subscriptions")} style={{ padding: "12px 20px", background: `${COLORS.accent}18`, border: `1px solid ${COLORS.accent}44`, color: COLORS.accent, borderRadius: 12, fontWeight: 800, fontSize: 13, cursor: "pointer" }}>💳 الاشتراكات</button>
-          <button onClick={() => onNav("memberships")} style={{ padding: "12px 20px", background: `${COLORS.accentGold}18`, border: `1px solid ${COLORS.accentGold}44`, color: COLORS.accentGold, borderRadius: 12, fontWeight: 800, fontSize: 13, cursor: "pointer" }}>💎 العضويات</button>
+          <button onClick={() => onNav("subscriptions")} style={{ padding: "12px 20px", background: "#00c89618", border: "1px solid #00c89655", color: "#00996f", borderRadius: 12, fontWeight: 800, fontSize: 13, cursor: "pointer" }}>💳 الاشتراكات</button>
+          <button onClick={() => onNav("memberships")} style={{ padding: "12px 20px", background: "#f5c84222", border: "1px solid #f5c84266", color: "#9a7b00", borderRadius: 12, fontWeight: 800, fontSize: 13, cursor: "pointer" }}>💎 العضويات</button>
         </div>
       </div>
+
+      {/* محرّر معلومات الأكاديمية — للمدير */}
+      {branchModal && (
+        <Modal title="📍 تعديل معلومات الأكاديمية" onClose={() => setBranchModal(false)}>
+          {[["place", "المكان", "حي طيبة - مدارس منارات النخبة الأهلية"], ["days", "الأيام", "الأحد - الثلاثاء - الخميس"], ["time", "الوقت", "من ٥م إلى ٧م"]].map(([k, lbl, ph]) => (
+            <div key={k} style={{ marginBottom: 14 }}>
+              <div style={{ fontSize: 12, color: COLORS.textSecondary, marginBottom: 5, fontWeight: 600 }}>{lbl}</div>
+              <input value={branchDraft[k] || ""} onChange={e => setBranchDraft(d => ({ ...d, [k]: e.target.value }))} placeholder={ph}
+                style={{ width: "100%", background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.textPrimary, borderRadius: 10, padding: "10px 12px", fontSize: 14, boxSizing: "border-box" }} />
+            </div>
+          ))}
+          <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
+            <button onClick={() => setBranchModal(false)} style={{ flex: 1, padding: "11px", borderRadius: 10, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.textSecondary, fontWeight: 700, fontSize: 13, cursor: "pointer" }}>إلغاء</button>
+            <button onClick={submitBranch} style={{ flex: 2, padding: "11px", borderRadius: 10, background: COLORS.accent, border: "none", color: "#000", fontWeight: 800, fontSize: 13, cursor: "pointer" }}>💾 حفظ</button>
+          </div>
+        </Modal>
+      )}
 
       {/* محرّر هوية الموقع — للمبرمج فقط */}
       {brandModal && brandDraft && (

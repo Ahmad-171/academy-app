@@ -11,9 +11,13 @@ import { FinanceManager } from "./FinanceManager";
 import { AttendanceManager } from "./AttendanceManager";
 import { EvaluationManager } from "./EvaluationManager";
 import { NotesManager } from "./NotesManager";
+import { CommerceSettings } from "./CommerceSettings";
 
 const EMPTY_PRODUCT = { name: "", price: "", category: "ملابس", img: "👕", imageUrl: "" };
 const EMPTY_CODE = { code: "", percent: "", maxUses: "" };
+
+const todayISO = () => new Date().toISOString().slice(0, 10);
+const addMonthsISO = (months) => { const d = new Date(); d.setMonth(d.getMonth() + Number(months || 0)); return d.toISOString().slice(0, 10); };
 
 const THEME_FIELDS = [
   { key: "accent",        label: "اللون الأساسي" },
@@ -30,7 +34,7 @@ const THEME_FIELDS = [
   { key: "warning",       label: "التحذير" },
 ];
 
-export function AdminPage({ user, users, setUsers, products, setProducts, loadData, subscriptionPlans, saveSubscriptionPlans, saveTheme, resetThemeAll }) {
+export function AdminPage({ user, users, setUsers, products, setProducts, loadData, subscriptionPlans, saveSubscriptionPlans, saveTheme, resetThemeAll, membershipsList, saveMembershipsList, storeCategories, saveStoreCategories, subCategories, saveSubCategories, branchInfo, saveBranchInfo, paymentInfo, savePaymentInfo }) {
   const isAdmin = isManager(user);
   const can = (perm) => isAdmin || !!user.permissions?.[perm];
   // حساب المبرمج فقط يرى الحسابات المخفية ويتحكم في إخفائها/إظهارها والألوان
@@ -46,6 +50,7 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
     { id: "finance",     label: "💰 المالية",            show: isAdmin },
     { id: "reports",     label: "📈 التقارير",           show: isAdmin },
     { id: "pricing",     label: "💲 الأسعار",            show: can("editCommerce") },
+    { id: "commerce",    label: "⚙️ إعدادات المتجر",     show: can("editCommerce") },
     { id: "theme",       label: "🎨 الألوان",            show: canSeeHidden },
   ].filter(t => t.show);
 
@@ -203,6 +208,17 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
       permissions: form.permissions || {},
       hidden: !!form.hidden,
     };
+
+    // إضافة/إلغاء اشتراك على الحساب من الإدارة
+    if (form.subChoice && form.subChoice !== "بدون تغيير") {
+      if (form.subChoice === "إلغاء الاشتراك") {
+        profile.subscription_start = null;
+        profile.subscription_end = null;
+      } else {
+        const pl = (subscriptionPlans || []).find(p => p.label === form.subChoice);
+        if (pl) { profile.subscription_start = todayISO(); profile.subscription_end = addMonthsISO(pl.months); }
+      }
+    }
 
     if (editId) {
       const { error } = await supabase.from('users')
@@ -644,7 +660,7 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
       <Modal title={editProductId ? "✏️ تعديل المنتج" : "➕ منتج جديد"} onClose={() => { setProductModal(false); setEditProductId(null); }}>
         <Field label="اسم المنتج *" value={newProduct.name} onChange={v => setNewProduct(p => ({ ...p, name: v }))} placeholder="مثال: طقم الأكاديمية" />
         <Field label="السعر (ر.س) *" value={newProduct.price} onChange={v => setNewProduct(p => ({ ...p, price: v }))} type="number" />
-        <Field label="التصنيف" value={newProduct.category} onChange={v => setNewProduct(p => ({ ...p, category: v }))} options={["ملابس", "إكسسوار", "حقائب", "معدات"]} />
+        <Field label="التصنيف" value={newProduct.category} onChange={v => setNewProduct(p => ({ ...p, category: v }))} options={(storeCategories && storeCategories.length ? storeCategories : ["ملابس", "إكسسوار", "حقائب", "معدات"])} />
 
         {/* صورة المنتج */}
         <div style={{ marginBottom: 14 }}>
@@ -716,6 +732,18 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
         </div>
       )}
 
+      {/* إعدادات المتجر والاشتراكات والعضويات والمعلومات والسداد */}
+      {adminTab === "commerce" && can("editCommerce") && (
+        <CommerceSettings
+          subscriptionPlans={subscriptionPlans} saveSubscriptionPlans={saveSubscriptionPlans}
+          membershipsList={membershipsList} saveMembershipsList={saveMembershipsList}
+          storeCategories={storeCategories} saveStoreCategories={saveStoreCategories}
+          subCategories={subCategories} saveSubCategories={saveSubCategories}
+          branchInfo={branchInfo} saveBranchInfo={saveBranchInfo}
+          paymentInfo={paymentInfo} savePaymentInfo={savePaymentInfo}
+        />
+      )}
+
       {/* الألوان — لحساب المبرمج فقط */}
       {adminTab === "theme" && canSeeHidden && (
         <div>
@@ -756,8 +784,11 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
             <Field label="رقم الجوال" value={form.phone || ""} onChange={v => setForm(p => ({ ...p, phone: v }))} />
             {form.role === "لاعب" && <>
               <Field label="المركز" value={form.position || "-"} onChange={v => setForm(p => ({ ...p, position: v }))} options={["مهاجم", "وسط", "دفاع", "حارس", "-"]} />
-              <Field label="العضوية" value={form.membership || "فضية"} onChange={v => setForm(p => ({ ...p, membership: v }))} options={["فضية", "ذهبية", "ماسية"]} />
               <Field label="المدرب المسؤول (ID)" value={form.coachId || ""} onChange={v => setForm(p => ({ ...p, coachId: v }))} placeholder="رقم هوية المدرب" />
+            </>}
+            {(form.role === "لاعب" || form.role === "ولي أمر") && <>
+              <Field label="العضوية" value={form.membership || "-"} onChange={v => setForm(p => ({ ...p, membership: v }))} options={["-", ...(membershipsList || []).map(m => m.name)]} />
+              <Field label="الاشتراك" value={form.subChoice || "بدون تغيير"} onChange={v => setForm(p => ({ ...p, subChoice: v }))} options={["بدون تغيير", "إلغاء الاشتراك", ...(subscriptionPlans || []).map(p => p.label)]} />
             </>}
             {form.role === "ولي أمر" && (() => {
               const child = form.childId?.trim() ? users.find(u => u.id === form.childId.trim() && u.role === "لاعب") : null;

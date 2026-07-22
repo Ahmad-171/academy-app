@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { supabase } from "../lib/supabase";
-import { validateDiscountCode, consumeDiscountCode } from "../lib/discounts";
+import { validateDiscountCode } from "../lib/discounts";
 import { COLORS } from "../constants/colors";
 import { SUBSCRIPTION_PLANS, DEFAULT_PAYMENT_INFO } from "../constants/data";
 import { useWindowSize } from "../hooks/useWindowSize";
@@ -8,13 +8,7 @@ import { useToast } from "../hooks/useToast";
 import { ToastMsg } from "../components/ui";
 import { PaymentBox } from "../components/PaymentBox";
 
-function addMonths(dateStr, months) {
-  const d = dateStr ? new Date(dateStr) : new Date();
-  d.setMonth(d.getMonth() + months);
-  return d.toISOString().slice(0, 10);
-}
-
-export function SubscriptionsPage({ user, setUsers, plans = SUBSCRIPTION_PLANS, categories = [], paymentInfo = DEFAULT_PAYMENT_INFO }) {
+export function SubscriptionsPage({ user, plans = SUBSCRIPTION_PLANS, categories = [], paymentInfo = DEFAULT_PAYMENT_INFO }) {
   const [selected, setSelected] = useState(null);
   const [code, setCode] = useState("");
   const [discount, setDiscount] = useState(null);
@@ -45,7 +39,7 @@ export function SubscriptionsPage({ user, setUsers, plans = SUBSCRIPTION_PLANS, 
     if (!plan || submitting) return;
     setSubmitting(true);
     const usedCode = discount ? code.trim().toUpperCase() : null;
-    // إعادة التحقق لحظة الدفع — قد يكون الكود انتهى استخدامه بين التطبيق والدفع
+    // إعادة التحقق لحظة الطلب — قد يكون الكود انتهى استخدامه بين التطبيق والطلب
     if (usedCode) {
       const recheck = await validateDiscountCode(usedCode);
       if (recheck.error) {
@@ -55,26 +49,24 @@ export function SubscriptionsPage({ user, setUsers, plans = SUBSCRIPTION_PLANS, 
         return;
       }
     }
-    const today = new Date().toISOString().slice(0, 10);
-    const endDate = addMonths(today, plan.months);
 
-    await supabase.from('subscription_payments').insert({
+    // إنشاء «طلب اشتراك» بحالة قيد المراجعة — لا يُفعَّل إلا بعد موافقة الإدارة.
+    const { error } = await supabase.from('subscription_payments').insert({
       user_id: user.id, plan_label: plan.label, months: plan.months,
-      amount: finalPrice, discount_code: usedCode,
+      amount: finalPrice, discount_code: usedCode, method: payMethod, status: 'pending',
     });
-    await supabase.from('users').update({ subscription_start: today, subscription_end: endDate, status: "نشط" }).eq('id', user.id);
-    await consumeDiscountCode(usedCode);
-    setUsers(prev => prev.map(u => u.id === user.id ? { ...u, subscription_start: today, subscription_end: endDate, status: "نشط" } : u));
     setSubmitting(false);
+    if (error) { show(`⚠️ تعذّر إرسال الطلب: ${error.message}`, COLORS.danger); return; }
     setDone(true);
   };
 
   if (done) return (
     <div style={{ padding: "80px 24px", textAlign: "center" }}>
-      <div style={{ fontSize: 72, marginBottom: 16 }}>🎉</div>
-      <div style={{ fontSize: 24, fontWeight: 900, color: COLORS.accent, marginBottom: 8 }}>تم تفعيل الاشتراك بنجاح!</div>
-      <div style={{ fontSize: 14, color: COLORS.textSecondary, marginBottom: 24 }}>{plan?.label} — {finalPrice} ر.س</div>
-      <button onClick={() => { setDone(false); setSelected(null); setCode(""); setDiscount(null); }}
+      <div style={{ fontSize: 72, marginBottom: 16 }}>📨</div>
+      <div style={{ fontSize: 22, fontWeight: 900, color: COLORS.accent, marginBottom: 8 }}>تم إرسال طلب الاشتراك</div>
+      <div style={{ fontSize: 14, color: COLORS.textSecondary, marginBottom: 6 }}>{plan?.label} — {finalPrice} ر.س · {payMethod === "transfer" ? "تحويل بنكي" : "كاش"}</div>
+      <div style={{ fontSize: 13, color: COLORS.textSecondary, marginBottom: 24, maxWidth: 360, margin: "0 auto 24px" }}>سيصل الطلب لإدارة الأكاديمية لتفعيله. يظهر اشتراكك فور الموافقة.</div>
+      <button onClick={() => { setDone(false); setSelected(null); setCode(""); setDiscount(null); setPayMethod("cash"); }}
         style={{ padding: "13px 36px", background: COLORS.accent, border: "none", color: "#000", borderRadius: 14, fontWeight: 800, fontSize: 15, cursor: "pointer" }}>العودة</button>
     </div>
   );
@@ -131,7 +123,7 @@ export function SubscriptionsPage({ user, setUsers, plans = SUBSCRIPTION_PLANS, 
 
           <button onClick={subscribe} disabled={submitting}
             style={{ width: "100%", padding: "13px", borderRadius: 13, background: `linear-gradient(135deg,${COLORS.accent},#00a07a)`, border: "none", color: "#000", fontWeight: 900, fontSize: 15, cursor: "pointer" }}>
-            {submitting ? "جاري التنفيذ..." : "✓ تفعيل الاشتراك"}
+            {submitting ? "جاري الإرسال..." : "📨 إرسال طلب الاشتراك"}
           </button>
         </div>
       )}

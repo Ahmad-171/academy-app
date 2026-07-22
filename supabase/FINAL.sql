@@ -57,7 +57,7 @@ create unique index attendance_log_user_day_idx on public.attendance_log(user_id
 create table public.evaluations (id bigint generated always as identity primary key, user_id text not null, eval_date date not null default current_date, ratings jsonb not null default '{}'::jsonb, note text, created_at timestamptz not null default now());
 create table public.player_notes (id bigint generated always as identity primary key, user_id text not null, note text not null, created_at timestamptz not null default now());
 create table public.discount_codes (code text primary key, percent_off numeric not null default 0, active boolean not null default true, max_uses integer, used_count integer not null default 0);
-create table public.subscription_payments (id bigint generated always as identity primary key, user_id text not null, plan_label text not null, months integer not null, amount numeric not null, discount_code text, created_at timestamptz not null default now());
+create table public.subscription_payments (id bigint generated always as identity primary key, user_id text not null, plan_label text not null, months integer not null, amount numeric not null, discount_code text, method text default 'cash', status text not null default 'pending', decided_at timestamptz, created_at timestamptz not null default now());
 create table public.store_orders (id bigint generated always as identity primary key, user_id text not null, product_name text not null, size text, amount numeric not null, discount_code text, created_at timestamptz not null default now());
 
 -- ── 2) دوال الصلاحيات («مبرمج» مثل «مدير») ──
@@ -125,6 +125,7 @@ create policy discount_delete on public.discount_codes for delete to authenticat
 alter table public.subscription_payments enable row level security;
 create policy subpay_select on public.subscription_payments for select to authenticated using (is_admin() or has_perm('editCommerce') or user_id = my_id());
 create policy subpay_insert on public.subscription_payments for insert to authenticated with check (is_admin() or user_id = my_id());
+create policy subpay_update on public.subscription_payments for update to authenticated using (is_admin() or has_perm('editCommerce')) with check (is_admin() or has_perm('editCommerce'));
 alter table public.store_orders enable row level security;
 create policy orders_select on public.store_orders for select to authenticated using (is_admin() or has_perm('editCommerce') or user_id = my_id());
 create policy orders_insert on public.store_orders for insert to authenticated with check (is_admin() or user_id = my_id());

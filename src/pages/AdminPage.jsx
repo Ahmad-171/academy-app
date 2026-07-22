@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { supabase } from "../lib/supabase";
 import { createAccount, resetMemberPassword } from "../lib/auth";
 import { uploadMedia } from "../lib/media";
+import { todayLocal, addMonthsLocal } from "../lib/dates";
 import { COLORS, DEFAULT_COLORS } from "../constants/colors";
 import { PERMISSION_LABELS, isManager } from "../constants/data";
 import { useWindowSize } from "../hooks/useWindowSize";
@@ -12,12 +13,11 @@ import { AttendanceManager } from "./AttendanceManager";
 import { EvaluationManager } from "./EvaluationManager";
 import { NotesManager } from "./NotesManager";
 import { CommerceSettings } from "./CommerceSettings";
+import { SubscriptionRequests } from "./SubscriptionRequests";
 
 const EMPTY_PRODUCT = { name: "", price: "", category: "ملابس", img: "👕", imageUrl: "" };
 const EMPTY_CODE = { code: "", percent: "", maxUses: "" };
 
-const todayISO = () => new Date().toISOString().slice(0, 10);
-const addMonthsISO = (months) => { const d = new Date(); d.setMonth(d.getMonth() + Number(months || 0)); return d.toISOString().slice(0, 10); };
 
 const THEME_FIELDS = [
   { key: "accent",        label: "اللون الأساسي" },
@@ -39,6 +39,7 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
   const can = (perm) => isAdmin || !!user.permissions?.[perm];
   // حساب المبرمج فقط يرى الحسابات المخفية ويتحكم في إخفائها/إظهارها والألوان
   const canSeeHidden = user.role === "مبرمج";
+  const [pendingSubs, setPendingSubs] = useState(0);
 
   const TABS = [
     { id: "overview",    label: "📊 لوحة التحكم",        show: isAdmin },
@@ -49,6 +50,7 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
     { id: "notes",       label: "📝 الملاحظات",          show: can("editData") },
     { id: "finance",     label: "💰 المالية",            show: isAdmin },
     { id: "reports",     label: "📈 التقارير",           show: isAdmin },
+    { id: "subrequests", label: `📨 طلبات الاشتراك${pendingSubs ? ` (${pendingSubs})` : ""}`, show: can("editCommerce") },
     { id: "pricing",     label: "💲 الأسعار",            show: can("editCommerce") },
     { id: "commerce",    label: "⚙️ إعدادات المتجر",     show: can("editCommerce") },
     { id: "theme",       label: "🎨 الألوان",            show: canSeeHidden },
@@ -81,6 +83,13 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
   }, []);
 
   useEffect(() => { if (adminTab === "pricing") loadCodes(); }, [adminTab, loadCodes]);
+
+  // عدد طلبات الاشتراك قيد المراجعة (شارة على التبويب)
+  const loadPendingSubs = useCallback(async () => {
+    const { count } = await supabase.from('subscription_payments').select('*', { count: 'exact', head: true }).eq('status', 'pending');
+    setPendingSubs(count || 0);
+  }, []);
+  useEffect(() => { loadPendingSubs(); }, [loadPendingSubs, adminTab]);
 
   const createCode = async () => {
     const code = newCode.code.trim().toUpperCase();
@@ -216,7 +225,7 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
         profile.subscription_end = null;
       } else {
         const pl = (subscriptionPlans || []).find(p => p.label === form.subChoice);
-        if (pl) { profile.subscription_start = todayISO(); profile.subscription_end = addMonthsISO(pl.months); }
+        if (pl) { profile.subscription_start = todayLocal(); profile.subscription_end = addMonthsLocal(pl.months); }
       }
     }
 
@@ -730,6 +739,11 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
             })}
           </div>
         </div>
+      )}
+
+      {/* طلبات الاشتراك — تفعيل/رفض */}
+      {adminTab === "subrequests" && can("editCommerce") && (
+        <SubscriptionRequests users={users} setUsers={setUsers} />
       )}
 
       {/* إعدادات المتجر والاشتراكات والعضويات والمعلومات والسداد */}

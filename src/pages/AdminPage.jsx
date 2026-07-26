@@ -14,6 +14,7 @@ import { EvaluationManager } from "./EvaluationManager";
 import { NotesManager } from "./NotesManager";
 import { CommerceSettings } from "./CommerceSettings";
 import { SubscriptionRequests } from "./SubscriptionRequests";
+import { MembershipRequests } from "./MembershipRequests";
 
 const EMPTY_PRODUCT = { name: "", price: "", category: "ملابس", img: "👕", imageUrl: "" };
 const EMPTY_CODE = { code: "", percent: "", maxUses: "" };
@@ -50,7 +51,7 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
     { id: "notes",       label: "📝 الملاحظات",          show: can("editData") },
     { id: "finance",     label: "💰 المالية",            show: isAdmin },
     { id: "reports",     label: "📈 التقارير",           show: isAdmin },
-    { id: "subrequests", label: `📨 طلبات الاشتراك${pendingSubs ? ` (${pendingSubs})` : ""}`, show: can("editCommerce") },
+    { id: "subrequests", label: `📨 الطلبات${pendingSubs ? ` (${pendingSubs})` : ""}`, show: can("editCommerce") },
     { id: "pricing",     label: "💲 الأسعار",            show: can("editCommerce") },
     { id: "commerce",    label: "⚙️ إعدادات المتجر",     show: can("editCommerce") },
     { id: "theme",       label: "🎨 الألوان",            show: canSeeHidden },
@@ -84,10 +85,13 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
 
   useEffect(() => { if (adminTab === "pricing") loadCodes(); }, [adminTab, loadCodes]);
 
-  // عدد طلبات الاشتراك قيد المراجعة (شارة على التبويب)
+  // عدد الطلبات قيد المراجعة (اشتراك + عضوية) — شارة على التبويب
   const loadPendingSubs = useCallback(async () => {
-    const { count } = await supabase.from('subscription_payments').select('*', { count: 'exact', head: true }).eq('status', 'pending');
-    setPendingSubs(count || 0);
+    const [subs, mems] = await Promise.all([
+      supabase.from('subscription_payments').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+      supabase.from('membership_requests').select('*', { count: 'exact', head: true }).eq('status', 'pending'),
+    ]);
+    setPendingSubs((subs.count || 0) + (mems.count || 0));
   }, []);
   useEffect(() => { loadPendingSubs(); }, [loadPendingSubs, adminTab]);
 
@@ -741,9 +745,12 @@ export function AdminPage({ user, users, setUsers, products, setProducts, loadDa
         </div>
       )}
 
-      {/* طلبات الاشتراك — تفعيل/رفض */}
+      {/* طلبات الاشتراك والعضوية — تفعيل/رفض */}
       {adminTab === "subrequests" && can("editCommerce") && (
-        <SubscriptionRequests users={users} setUsers={setUsers} />
+        <div>
+          <SubscriptionRequests users={users} setUsers={setUsers} />
+          <MembershipRequests users={users} setUsers={setUsers} />
+        </div>
       )}
 
       {/* إعدادات المتجر والاشتراكات والعضويات والمعلومات والسداد */}

@@ -7,12 +7,13 @@ import { useToast } from "../hooks/useToast";
 import { ToastMsg } from "../components/ui";
 import { PaymentBox } from "../components/PaymentBox";
 
-export function MembershipsPage({ user, setUsers, memberships = DEFAULT_MEMBERSHIPS, paymentInfo = DEFAULT_PAYMENT_INFO }) {
+export function MembershipsPage({ user, memberships = DEFAULT_MEMBERSHIPS, paymentInfo = DEFAULT_PAYMENT_INFO }) {
   const { isDesktop } = useWindowSize();
   const { toast, show } = useToast();
   const [selected, setSelected] = useState(null);
   const [payMethod, setPayMethod] = useState("cash");
   const [submitting, setSubmitting] = useState(false);
+  const [done, setDone] = useState(false);
 
   const isMine = (m) => user.membership === m.name;
   // اللاعب وولي الأمر يقدران يختاران العضوية
@@ -22,13 +23,25 @@ export function MembershipsPage({ user, setUsers, memberships = DEFAULT_MEMBERSH
   const choose = async () => {
     if (!chosen || submitting) return;
     setSubmitting(true);
-    const { error } = await supabase.from('users').update({ membership: chosen.name }).eq('id', user.id);
+    // إنشاء «طلب عضوية» بحالة قيد المراجعة — لا يُفعَّل إلا بعد موافقة الإدارة
+    const { error } = await supabase.from('membership_requests').insert({
+      user_id: user.id, membership_name: chosen.name, amount: chosen.price || 0, method: payMethod, status: 'pending',
+    });
     setSubmitting(false);
-    if (error) { show(`⚠️ ${error.message}`, COLORS.danger); return; }
-    setUsers?.(prev => prev.map(u => u.id === user.id ? { ...u, membership: chosen.name } : u));
-    setSelected(null);
-    show(`✅ تم اختيار عضوية ${chosen.name}`);
+    if (error) { show(`⚠️ تعذّر إرسال الطلب: ${error.message}`, COLORS.danger); return; }
+    setDone(true);
   };
+
+  if (done) return (
+    <div style={{ padding: "80px 24px", textAlign: "center" }}>
+      <div style={{ fontSize: 72, marginBottom: 16 }}>📨</div>
+      <div style={{ fontSize: 22, fontWeight: 900, color: COLORS.accent, marginBottom: 8 }}>تم إرسال طلب العضوية</div>
+      <div style={{ fontSize: 14, color: COLORS.textSecondary, marginBottom: 6 }}>عضوية {chosen?.name}{chosen?.price > 0 ? ` — ${chosen.price} ر.س · ${payMethod === "transfer" ? "تحويل بنكي" : "كاش"}` : ""}</div>
+      <div style={{ fontSize: 13, color: COLORS.textSecondary, maxWidth: 360, margin: "0 auto 24px" }}>سيصل الطلب لإدارة الأكاديمية لتفعيله. تظهر عضويتك فور الموافقة.</div>
+      <button onClick={() => { setDone(false); setSelected(null); setPayMethod("cash"); }}
+        style={{ padding: "13px 36px", background: COLORS.accent, border: "none", color: "#000", borderRadius: 14, fontWeight: 800, fontSize: 15, cursor: "pointer" }}>العودة</button>
+    </div>
+  );
 
   return (
     <div style={{ padding: isDesktop ? "32px" : "16px" }}>
@@ -61,7 +74,7 @@ export function MembershipsPage({ user, setUsers, memberships = DEFAULT_MEMBERSH
           {chosen.price > 0 && <PaymentBox amount={chosen.price} paymentInfo={paymentInfo} method={payMethod} onMethod={setPayMethod} />}
           <div style={{ display: "flex", gap: 8 }}>
             <button onClick={() => setSelected(null)} style={{ flex: 1, padding: "13px", borderRadius: 13, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.textSecondary, fontWeight: 700, fontSize: 14, cursor: "pointer" }}>إلغاء</button>
-            <button onClick={choose} disabled={submitting} style={{ flex: 2, padding: "13px", borderRadius: 13, background: `linear-gradient(135deg,${COLORS.accent},#00a07a)`, border: "none", color: "#000", fontWeight: 900, fontSize: 14, cursor: "pointer" }}>{submitting ? "جاري التنفيذ..." : "✓ تأكيد العضوية"}</button>
+            <button onClick={choose} disabled={submitting} style={{ flex: 2, padding: "13px", borderRadius: 13, background: `linear-gradient(135deg,${COLORS.accent},#00a07a)`, border: "none", color: "#000", fontWeight: 900, fontSize: 14, cursor: "pointer" }}>{submitting ? "جاري الإرسال..." : "📨 إرسال طلب العضوية"}</button>
           </div>
         </div>
       )}

@@ -59,6 +59,7 @@ create table public.player_notes (id bigint generated always as identity primary
 create table public.discount_codes (code text primary key, percent_off numeric not null default 0, active boolean not null default true, max_uses integer, used_count integer not null default 0);
 create table public.subscription_payments (id bigint generated always as identity primary key, user_id text not null, plan_label text not null, months integer not null, amount numeric not null, discount_code text, method text default 'cash', status text not null default 'pending', decided_at timestamptz, created_at timestamptz not null default now());
 create table public.store_orders (id bigint generated always as identity primary key, user_id text not null, product_name text not null, size text, amount numeric not null, discount_code text, created_at timestamptz not null default now());
+create table public.membership_requests (id bigint generated always as identity primary key, user_id text not null, membership_name text not null, amount numeric not null default 0, method text default 'cash', status text not null default 'pending', decided_at timestamptz, created_at timestamptz not null default now());
 
 -- ── 2) دوال الصلاحيات («مبرمج» مثل «مدير») ──
 create or replace function is_admin() returns boolean as $$ select coalesce((select role in ('مدير','مبرمج') from public.users where auth_uid = auth.uid() limit 1), false); $$ language sql security definer stable;
@@ -73,6 +74,7 @@ begin
   delete from public.evaluations where user_id = old.id;
   delete from public.player_notes where user_id = old.id;
   delete from public.subscription_payments where user_id = old.id;
+  delete from public.membership_requests where user_id = old.id;
   delete from public.store_orders where user_id = old.id;
   if old.auth_uid is not null then delete from auth.users where id = old.auth_uid; end if;
   return old;
@@ -126,6 +128,10 @@ alter table public.subscription_payments enable row level security;
 create policy subpay_select on public.subscription_payments for select to authenticated using (is_admin() or has_perm('editCommerce') or user_id = my_id());
 create policy subpay_insert on public.subscription_payments for insert to authenticated with check (is_admin() or user_id = my_id());
 create policy subpay_update on public.subscription_payments for update to authenticated using (is_admin() or has_perm('editCommerce')) with check (is_admin() or has_perm('editCommerce'));
+alter table public.membership_requests enable row level security;
+create policy memreq_select on public.membership_requests for select to authenticated using (is_admin() or has_perm('editCommerce') or user_id = my_id());
+create policy memreq_insert on public.membership_requests for insert to authenticated with check (is_admin() or user_id = my_id());
+create policy memreq_update on public.membership_requests for update to authenticated using (is_admin() or has_perm('editCommerce')) with check (is_admin() or has_perm('editCommerce'));
 alter table public.store_orders enable row level security;
 create policy orders_select on public.store_orders for select to authenticated using (is_admin() or has_perm('editCommerce') or user_id = my_id());
 create policy orders_insert on public.store_orders for insert to authenticated with check (is_admin() or user_id = my_id());

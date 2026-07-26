@@ -81,7 +81,7 @@ export function PlayersManager({ users, setUsers, user }) {
         {selected ? (
           <div>
             {/* هيدر اللاعب */}
-            <div style={{ background: "linear-gradient(135deg,#0f1628,#1a2540)", border: `1px solid ${COLORS.border}`, borderRadius: 16, padding: "18px 20px", marginBottom: 16, display: "flex", alignItems: "center", gap: 14 }}>
+            <div style={{ background: "linear-gradient(135deg,#e8f3f5,#f5fafb)", border: `1px solid ${COLORS.border}`, borderRadius: 16, padding: "18px 20px", marginBottom: 16, display: "flex", alignItems: "center", gap: 14 }}>
               <Avatar letter={selected.name[0]} size={52} color={COLORS.accent} />
               <div style={{ flex: 1 }}>
                 <div style={{ fontSize: 18, fontWeight: 800, color: COLORS.textPrimary }}>{selected.name}</div>

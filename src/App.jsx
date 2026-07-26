@@ -277,9 +277,9 @@ export default function App() {
     }
   };
   if (loading) return (
-    <div style={{ minHeight: "100vh", background: "#0a0e1a", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16, fontFamily: "'Cairo',sans-serif" }}>
+    <div style={{ minHeight: "100vh", background: COLORS.darkBg, display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column", gap: 16, fontFamily: "'Cairo',sans-serif" }}>
       <div style={{ animation: "spin 1s linear infinite" }}><Logo size={60} src={logoUrl} /></div>
-      <div style={{ color: "#00c896", fontSize: 16, fontWeight: 700 }}>جاري التحميل...</div>
+      <div style={{ color: COLORS.accent, fontSize: 16, fontWeight: 700 }}>جاري التحميل...</div>
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }`}</style>
     </div>
   );

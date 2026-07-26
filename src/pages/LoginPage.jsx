@@ -79,7 +79,7 @@ export function LoginPage({ onLogin, logoUrl }) {
             )}
 
             <button onClick={handleLogin} disabled={loading || !idNum || !pass}
-              style={{ width: "100%", padding: "13px", borderRadius: 13, background: idNum && pass && !loading ? `linear-gradient(135deg,${COLORS.accent},#00a07a)` : COLORS.surface, border: "none", color: idNum && pass && !loading ? "#000" : COLORS.textSecondary, fontWeight: 900, fontSize: 15, cursor: idNum && pass && !loading ? "pointer" : "not-allowed" }}>
+              style={{ width: "100%", padding: "13px", borderRadius: 13, background: idNum && pass && !loading ? `linear-gradient(135deg,${COLORS.accent},#0e7d8f)` : COLORS.surface, border: "none", color: idNum && pass && !loading ? "#000" : COLORS.textSecondary, fontWeight: 900, fontSize: 15, cursor: idNum && pass && !loading ? "pointer" : "not-allowed" }}>
               {loading ? "جاري الدخول..." : "دخول ←"}
             </button>
           </div>

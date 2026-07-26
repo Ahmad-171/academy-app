@@ -92,8 +92,8 @@ export function HomePage({ onNav, user, users, notifications = [], directorMsg, 
   return (
     <div style={{ padding: isDesktop ? "32px" : "0 0 40px" }}>
       {/* Hero */}
-      <div style={{ background: heroBg ? `linear-gradient(160deg,#0a1628cc 0%,#0d2044aa 50%,#0a1628cc 100%), url(${heroBg}) center/cover no-repeat` : "linear-gradient(160deg,#0a1628 0%,#0d2044 50%,#0a1628 100%)", padding: isDesktop ? "40px 48px" : "32px 18px 26px", position: "relative", overflow: "hidden", borderBottom: `1px solid ${COLORS.border}`, borderRadius: isDesktop ? 20 : 0, marginBottom: isDesktop ? 24 : 0 }}>
-        {!heroBg && <div style={{ position: "absolute", inset: 0, opacity: 0.04, pointerEvents: "none", backgroundImage: `repeating-linear-gradient(0deg,#fff 0,#fff 1px,transparent 1px,transparent 60px),repeating-linear-gradient(90deg,#fff 0,#fff 1px,transparent 1px,transparent 60px)` }} />}
+      <div style={{ background: heroBg ? `linear-gradient(160deg,#eef6f8e6 0%,#f6fbfccc 50%,#eef6f8e6 100%), url(${heroBg}) center/cover no-repeat` : "linear-gradient(160deg,#e6f2f5 0%,#f3fafb 50%,#e6f2f5 100%)", padding: isDesktop ? "40px 48px" : "32px 18px 26px", position: "relative", overflow: "hidden", borderBottom: `1px solid ${COLORS.border}`, borderRadius: isDesktop ? 20 : 0, marginBottom: isDesktop ? 24 : 0 }}>
+        {!heroBg && <div style={{ position: "absolute", inset: 0, opacity: 0.05, pointerEvents: "none", backgroundImage: `repeating-linear-gradient(0deg,#0e3a47 0,#0e3a47 1px,transparent 1px,transparent 60px),repeating-linear-gradient(90deg,#0e3a47 0,#0e3a47 1px,transparent 1px,transparent 60px)` }} />}
 
         {canEditBranding && (
           <label style={{ position: "absolute", top: 12, right: 12, zIndex: 2, background: "#000000aa", border: "1px solid #ffffff33", color: "#fff", borderRadius: 9, padding: "6px 12px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>
@@ -111,7 +111,7 @@ export function HomePage({ onNav, user, users, notifications = [], directorMsg, 
               <div style={{ opacity: visible ? 1 : 0, transition: "all 0.6s ease", position: "relative" }}>
                 <Logo size={isDesktop ? 64 : 54} src={logoUrl} />
                 {canEditBranding && (
-                  <label title="تغيير الشعار" style={{ position: "absolute", bottom: -6, left: -6, width: 24, height: 24, borderRadius: "50%", background: COLORS.accent, color: "#000", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, cursor: "pointer", border: "2px solid #0a1628" }}>
+                  <label title="تغيير الشعار" style={{ position: "absolute", bottom: -6, left: -6, width: 24, height: 24, borderRadius: "50%", background: COLORS.accent, color: "#000", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, cursor: "pointer", border: "2px solid #ffffff" }}>
                     {logoUploading ? "…" : "✎"}
                     <input type="file" accept="image/*" onChange={e => changeLogo(e.target.files?.[0])} style={{ display: "none" }} />
                   </label>
@@ -121,14 +121,14 @@ export function HomePage({ onNav, user, users, notifications = [], directorMsg, 
                 <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
                   <div style={{ fontSize: isDesktop ? 26 : 20, fontWeight: 900, color: COLORS.textPrimary }}>{BRAND.name}</div>
                   {canEditBranding && (
-                    <button onClick={openBrandEditor} title="تعديل هوية الموقع" style={{ background: "#ffffff14", border: "1px solid #ffffff26", color: "#fff", borderRadius: 8, padding: "3px 9px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>✎ الاسم والبطاقات</button>
+                    <button onClick={openBrandEditor} title="تعديل هوية الموقع" style={{ background: COLORS.accent + "1f", border: `1px solid ${COLORS.accent}55`, color: COLORS.accent, borderRadius: 8, padding: "3px 9px", fontSize: 11, fontWeight: 700, cursor: "pointer" }}>✎ الاسم والبطاقات</button>
                   )}
                 </div>
                 <div style={{ fontSize: 11, color: COLORS.accent, letterSpacing: 2, marginTop: 2 }}>{BRAND.tagline}</div>
               </div>
             </div>
             {/* بطاقة المستخدم */}
-            <div style={{ background: "#ffffff0a", border: "1px solid #ffffff10", borderRadius: 16, padding: "14px 18px", display: "inline-flex", alignItems: "center", gap: 12 }}>
+            <div style={{ background: "#0e3a470a", border: "1px solid #d2e0e6", borderRadius: 16, padding: "14px 18px", display: "inline-flex", alignItems: "center", gap: 12 }}>
               <Avatar letter={user.name[0]} size={44} color={user.role === "مدير" ? COLORS.purple : user.role === "مدرب" ? COLORS.accentGold : user.role === "ولي أمر" ? COLORS.accentBlue : COLORS.accent} />
               <div>
                 <div style={{ fontSize: 15, fontWeight: 800, color: COLORS.textPrimary }}>{user.name}</div>
@@ -140,7 +140,7 @@ export function HomePage({ onNav, user, users, notifications = [], directorMsg, 
           </div>
 
           {/* رسالة المدير */}
-          <div style={{ background: "#ffffff08", border: "1px solid #ffffff10", borderRadius: 16, padding: "18px 20px", width: isDesktop ? 360 : "100%", position: "relative" }}>
+          <div style={{ background: "#0e3a4708", border: "1px solid #d2e0e6", borderRadius: 16, padding: "18px 20px", width: isDesktop ? 360 : "100%", position: "relative" }}>
             <div style={{ fontSize: 11, color: COLORS.accentGold, marginBottom: 8, fontWeight: 700 }}>💬 رسالة المدير</div>
             {editMsg ? (
               <div>
@@ -184,18 +184,18 @@ export function HomePage({ onNav, user, users, notifications = [], directorMsg, 
         {/* اشتراكي وعضويتي — للاعب/ولي الأمر */}
         {isSubscriber && (
           <div style={{ display: "grid", gridTemplateColumns: isDesktop ? "1fr 1fr" : "1fr", gap: 12, marginBottom: 18 }}>
-            <div style={{ background: LT.card, border: `1px solid ${subActive ? "#00c89655" : LT.border}`, borderRadius: 16, padding: "16px 18px" }}>
+            <div style={{ background: LT.card, border: `1px solid ${subActive ? "#1799ae55" : LT.border}`, borderRadius: 16, padding: "16px 18px" }}>
               <div style={{ fontSize: 12, color: LT.sub, fontWeight: 700, marginBottom: 6 }}>💳 اشتراكي</div>
               {subActive ? (
                 <>
-                  <div style={{ fontSize: 15, fontWeight: 900, color: "#00996f" }}>نشط ✅</div>
+                  <div style={{ fontSize: 15, fontWeight: 900, color: "#0e7d8f" }}>نشط ✅</div>
                   {myPlan?.desc && <div style={{ fontSize: 12, color: LT.text, marginTop: 3 }}>{myPlan.label} — {myPlan.desc}</div>}
                   <div style={{ fontSize: 12, color: LT.sub, marginTop: 4 }}>ساري حتى: {user.subscription_end}</div>
                 </>
               ) : (
                 <>
                   <div style={{ fontSize: 15, fontWeight: 900, color: LT.sub }}>غير مفعّل</div>
-                  <button onClick={() => onNav("subscriptions")} style={{ marginTop: 8, background: "#00c896", border: "none", color: "#000", borderRadius: 9, padding: "7px 14px", fontSize: 12, fontWeight: 800, cursor: "pointer" }}>اشترك الآن</button>
+                  <button onClick={() => onNav("subscriptions")} style={{ marginTop: 8, background: "#1799ae", border: "none", color: "#000", borderRadius: 9, padding: "7px 14px", fontSize: 12, fontWeight: 800, cursor: "pointer" }}>اشترك الآن</button>
                 </>
               )}
             </div>
@@ -227,7 +227,7 @@ export function HomePage({ onNav, user, users, notifications = [], directorMsg, 
         {/* خانة الأخبار — من الفعاليات والرسائل */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
           <div style={{ fontSize: 16, fontWeight: 800, color: LT.text }}>📢 آخر الأخبار</div>
-          <button onClick={() => onNav("notifications")} style={{ background: "none", border: "none", color: "#00996f", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>عرض الكل ←</button>
+          <button onClick={() => onNav("notifications")} style={{ background: "none", border: "none", color: "#0e7d8f", fontSize: 12, fontWeight: 700, cursor: "pointer" }}>عرض الكل ←</button>
         </div>
         {homeNews.length === 0 ? (
           <div style={{ background: LT.card, border: `1px solid ${LT.border}`, borderRadius: 14, padding: "26px 20px", textAlign: "center", color: LT.sub, fontSize: 13, marginBottom: 22 }}>
@@ -254,7 +254,7 @@ export function HomePage({ onNav, user, users, notifications = [], directorMsg, 
         )}
 
         <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
-          <button onClick={() => onNav("subscriptions")} style={{ padding: "12px 20px", background: "#00c89618", border: "1px solid #00c89655", color: "#00996f", borderRadius: 12, fontWeight: 800, fontSize: 13, cursor: "pointer" }}>💳 الاشتراكات</button>
+          <button onClick={() => onNav("subscriptions")} style={{ padding: "12px 20px", background: "#1799ae18", border: "1px solid #1799ae55", color: "#0e7d8f", borderRadius: 12, fontWeight: 800, fontSize: 13, cursor: "pointer" }}>💳 الاشتراكات</button>
           <button onClick={() => onNav("memberships")} style={{ padding: "12px 20px", background: "#f5c84222", border: "1px solid #f5c84266", color: "#9a7b00", borderRadius: 12, fontWeight: 800, fontSize: 13, cursor: "pointer" }}>💎 العضويات</button>
         </div>
       </div>

@@ -74,7 +74,7 @@ export function MembershipsPage({ user, memberships = DEFAULT_MEMBERSHIPS, payme
           {chosen.price > 0 && <PaymentBox amount={chosen.price} paymentInfo={paymentInfo} method={payMethod} onMethod={setPayMethod} />}
           <div style={{ display: "flex", gap: 8 }}>
             <button onClick={() => setSelected(null)} style={{ flex: 1, padding: "13px", borderRadius: 13, background: COLORS.surface, border: `1px solid ${COLORS.border}`, color: COLORS.textSecondary, fontWeight: 700, fontSize: 14, cursor: "pointer" }}>إلغاء</button>
-            <button onClick={choose} disabled={submitting} style={{ flex: 2, padding: "13px", borderRadius: 13, background: `linear-gradient(135deg,${COLORS.accent},#00a07a)`, border: "none", color: "#000", fontWeight: 900, fontSize: 14, cursor: "pointer" }}>{submitting ? "جاري الإرسال..." : "📨 إرسال طلب العضوية"}</button>
+            <button onClick={choose} disabled={submitting} style={{ flex: 2, padding: "13px", borderRadius: 13, background: `linear-gradient(135deg,${COLORS.accent},#0e7d8f)`, border: "none", color: "#000", fontWeight: 900, fontSize: 14, cursor: "pointer" }}>{submitting ? "جاري الإرسال..." : "📨 إرسال طلب العضوية"}</button>
           </div>
         </div>
       )}

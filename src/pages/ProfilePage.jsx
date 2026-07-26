@@ -59,8 +59,8 @@ export function ProfilePage({ user, users, setUsers }) {
       <div style={{ display: isDesktop ? "grid" : "block", gridTemplateColumns: "280px 1fr", gap: 24 }}>
         {/* بطاقة البروفايل */}
         <div>
-          <div style={{ background: "linear-gradient(135deg,#0f1628,#1a2540)", border: `1px solid ${COLORS.border}`, borderRadius: 20, padding: "24px", marginBottom: 14, textAlign: "center", position: "relative" }}>
-            <div style={{ width: 82, height: 82, borderRadius: "50%", background: "linear-gradient(135deg,#00c896,#0066cc)", margin: "0 auto 12px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, fontWeight: 900, color: "#fff", boxShadow: "0 0 30px #00c89655" }}>{profileUser.name[0]}</div>
+          <div style={{ background: "linear-gradient(135deg,#e8f3f5,#f5fafb)", border: `1px solid ${COLORS.border}`, borderRadius: 20, padding: "24px", marginBottom: 14, textAlign: "center", position: "relative" }}>
+            <div style={{ width: 82, height: 82, borderRadius: "50%", background: "linear-gradient(135deg,#1799ae,#0e5a6e)", margin: "0 auto 12px", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 32, fontWeight: 900, color: "#fff", boxShadow: "0 0 30px #1799ae55" }}>{profileUser.name[0]}</div>
             <div style={{ fontSize: 18, fontWeight: 800, color: COLORS.textPrimary }}>{profileUser.name}</div>
             <div style={{ fontSize: 12, color: COLORS.textSecondary, margin: "4px 0 8px" }}>
               {profileUser.customRole || profileUser.role}

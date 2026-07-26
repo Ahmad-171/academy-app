@@ -122,7 +122,7 @@ export function SubscriptionsPage({ user, plans = SUBSCRIPTION_PLANS, categories
           <PaymentBox amount={finalPrice} paymentInfo={paymentInfo} method={payMethod} onMethod={setPayMethod} />
 
           <button onClick={subscribe} disabled={submitting}
-            style={{ width: "100%", padding: "13px", borderRadius: 13, background: `linear-gradient(135deg,${COLORS.accent},#00a07a)`, border: "none", color: "#000", fontWeight: 900, fontSize: 15, cursor: "pointer" }}>
+            style={{ width: "100%", padding: "13px", borderRadius: 13, background: `linear-gradient(135deg,${COLORS.accent},#0e7d8f)`, border: "none", color: "#000", fontWeight: 900, fontSize: 15, cursor: "pointer" }}>
             {submitting ? "جاري الإرسال..." : "📨 إرسال طلب الاشتراك"}
           </button>
         </div>

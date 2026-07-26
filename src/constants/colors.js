@@ -1,9 +1,9 @@
-// الألوان الافتراضية للموقع
+// الألوان الافتراضية للموقع — خلفية بيضاء وألوان مستمدّة من شعار NZ Academy (تركواز/كحلي)
 export const DEFAULT_COLORS = {
-  darkBg: "#0a0e1a", cardBg: "#0f1628", surface: "#151d35",
-  border: "#1e2d50", accent: "#00c896", accentGold: "#f5c842",
-  accentBlue: "#3b82f6", textPrimary: "#f0f4ff", textSecondary: "#7a8bb5",
-  danger: "#ef4444", warning: "#f59e0b", purple: "#a855f7",
+  darkBg: "#ffffff", cardBg: "#f3f8fa", surface: "#e9f1f4",
+  border: "#d2e0e6", accent: "#1799ae", accentGold: "#c8912a",
+  accentBlue: "#2fb0c6", textPrimary: "#0e3a47", textSecondary: "#5c7883",
+  danger: "#e04848", warning: "#e0891e", purple: "#0e5a6e",
 };
 
 // كائن الألوان الحيّ — تقرأه كل الواجهة. يُعدَّل وقت التشغيل من حساب المبرمج.
